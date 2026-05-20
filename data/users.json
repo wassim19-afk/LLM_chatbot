@@ -1,0 +1,14 @@
+{
+  "users": [
+    {
+      "id": "121d6aaa-0b28-40c9-99a7-6cf138fe7717",
+      "full_name": "wassim",
+      "email": "wassim.garali@gmail.com",
+      "username": "user12",
+      "password_salt": "3bf0b08a221592763ccc06832cd03a92",
+      "password_hash": "738bfdcc20afefc21bc9d301b352689d660eab2121c3557ae815177143a7708a",
+      "created_at": "2026-05-19T19:10:46.367934",
+      "updated_at": "2026-05-19T19:10:46.367934"
+    }
+  ]
+}

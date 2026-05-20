@@ -1,0 +1,81 @@
+{
+  "session_id": "scope_test",
+  "session_name": "Session scope_te",
+  "created_at": "2026-04-24T11:37:49.449447",
+  "updated_at": "2026-04-24T11:37:50.369472",
+  "interactions": [
+    {
+      "timestamp": "2026-04-24T11:37:49.449447",
+      "question": "ca 2024",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "Chiffre d'affaires: 10,163,036,028 BnFCFA"
+    },
+    {
+      "timestamp": "2026-04-24T11:37:49.552744",
+      "question": "ca 2024 pem",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "Chiffre d'affaires: 10,163,036,028 BnFCFA"
+    },
+    {
+      "timestamp": "2026-04-24T11:37:49.651675",
+      "question": "ca 2024 sapec",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "Chiffre d'affaires: 16,912,142,687 BnFCFA"
+    },
+    {
+      "timestamp": "2026-04-24T11:37:49.674451",
+      "question": "achat 2024",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "Achat: 484,027 BnFCFA"
+    },
+    {
+      "timestamp": "2026-04-24T11:37:49.702970",
+      "question": "achat 2024 pem",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "Achat: 402,503 BnFCFA"
+    },
+    {
+      "timestamp": "2026-04-24T11:37:50.154156",
+      "question": "encaissement 2024",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "Encaissement: 510,529 BnFCFA"
+    },
+    {
+      "timestamp": "2026-04-24T11:37:50.223021",
+      "question": "encaissement 2024 sapec",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "Encaissement: 423,943,336 BnFCFA"
+    },
+    {
+      "timestamp": "2026-04-24T11:37:50.291498",
+      "question": "decaissement 2024",
+      "sql_generated": "SELECT\n    YEAR([Posting Date]) AS [Year],\n    SUM([Amount]) AS [Chiffre d'affaires CA]\nFROM [dbo].[Fact_CustomerPayementDetail]\nWHERE YEAR([Posting Date]) = 2024\nGROUP BY YEAR([Posting Date])",
+      "result_summary": "1 row: Year=2024, Chiffre d'affaires CA=232993525.42",
+      "row_count": 1,
+      "response": "Le Chiffre d'affaires CA est 232,993,525.42\u20ac in 2024 (compar\u00e9 au pr\u00e9c\u00e9dent: Encaissement: 423,943,336 BnFCFA)"
+    },
+    {
+      "timestamp": "2026-04-24T11:37:50.361339",
+      "question": "decaissement 2024 pem",
+      "sql_generated": "SELECT\n    YEAR([Posting Date]) AS [Year],\n    SUM([Amount]) AS [Chiffre d'affaires CA]\nFROM [dbo].[Fact_CustomerPayementDetail]\nWHERE YEAR([Posting Date]) = 2024\nGROUP BY YEAR([Posting Date])",
+      "result_summary": "1 row: Year=2024, Chiffre d'affaires CA=232993525.42",
+      "row_count": 1,
+      "response": "Le Chiffre d'affaires CA est 232,993,525.42\u20ac in 2024 (compar\u00e9 au pr\u00e9c\u00e9dent: Le Chiffre d'affaires CA est 232,993,525.42\u20ac in 2024 (compar\u00e9 au pr\u00e9c\u00e9dent: Encaissement: 423,943,336 BnFCFA))"
+    }
+  ],
+  "interaction_count": 9
+}

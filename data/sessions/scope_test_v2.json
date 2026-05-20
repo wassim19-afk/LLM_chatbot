@@ -1,0 +1,81 @@
+{
+  "session_id": "scope_test_v2",
+  "session_name": "Session scope_te",
+  "created_at": "2026-04-24T11:49:30.443367",
+  "updated_at": "2026-04-24T11:49:42.195444",
+  "interactions": [
+    {
+      "timestamp": "2026-04-24T11:49:30.442334",
+      "question": "ca 2024",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "Chiffre d'affaires: 27,075,178,716 BnFCFA"
+    },
+    {
+      "timestamp": "2026-04-24T11:49:30.771987",
+      "question": "ca 2024 pem",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "Chiffre d'affaires: 10,163,036,028 BnFCFA"
+    },
+    {
+      "timestamp": "2026-04-24T11:49:30.977656",
+      "question": "ca 2024 sapec",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "Chiffre d'affaires: 16,912,142,687 BnFCFA"
+    },
+    {
+      "timestamp": "2026-04-24T11:49:36.084048",
+      "question": "achat 2024",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "Achat: 54,979,745,035 BnFCFA"
+    },
+    {
+      "timestamp": "2026-04-24T11:49:41.456263",
+      "question": "achat 2024 pem",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "Achat: 5,824,285,490 BnFCFA"
+    },
+    {
+      "timestamp": "2026-04-24T11:49:41.739328",
+      "question": "encaissement 2024",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "Encaissement: 232,993,525 BnFCFA"
+    },
+    {
+      "timestamp": "2026-04-24T11:49:41.848411",
+      "question": "encaissement 2024 sapec",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "Encaissement: 423,943,336 BnFCFA"
+    },
+    {
+      "timestamp": "2026-04-24T11:49:42.095845",
+      "question": "decaissement 2024",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "D\u00e9caissement: 547,310,133 BnFCFA"
+    },
+    {
+      "timestamp": "2026-04-24T11:49:42.174485",
+      "question": "decaissement 2024 pem",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "D\u00e9caissement: 289,880,600 BnFCFA"
+    }
+  ],
+  "interaction_count": 9
+}

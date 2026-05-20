@@ -1,0 +1,25 @@
+{
+  "session_id": "db_test",
+  "session_name": "Session db_test",
+  "created_at": "2026-04-24T00:59:51.147440",
+  "updated_at": "2026-04-24T01:07:18.464776",
+  "interactions": [
+    {
+      "timestamp": "2026-04-24T00:59:51.147440",
+      "question": "ca 2024",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "Chiffre d'affaires: 149,508,127,620 BnFCFA"
+    },
+    {
+      "timestamp": "2026-04-24T01:07:18.464776",
+      "question": "ca 2024",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "Chiffre d'affaires: 30,466,333,337 BnFCFA"
+    }
+  ],
+  "interaction_count": 2
+}

@@ -1,0 +1,25 @@
+{
+  "session_id": "retest_month_fix",
+  "session_name": "Session retest_m",
+  "created_at": "2026-04-24T13:19:36.609124",
+  "updated_at": "2026-04-24T13:19:38.065150",
+  "interactions": [
+    {
+      "timestamp": "2026-04-24T13:19:36.609124",
+      "question": "decaissement 2024",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "D\u00e9caissement: 582,179 BnFCFA"
+    },
+    {
+      "timestamp": "2026-04-24T13:19:38.050565",
+      "question": "decaissement decembre 2024",
+      "sql_generated": "BI_QUERY",
+      "result_summary": "2 rows",
+      "row_count": 2,
+      "response": "D\u00e9caissement: 547,310,133 BnFCFA"
+    }
+  ],
+  "interaction_count": 2
+}

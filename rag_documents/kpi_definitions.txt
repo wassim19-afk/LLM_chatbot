@@ -1,0 +1,17 @@
+
+CA (Chiffre d'Affaires) - Total revenue in currency units.
+Calculated as: SUM of all sales transactions.
+
+Top Clients - Customers ranked by total sales amount in descending order.
+Used for: Identifying key business drivers and concentration risk.
+
+Montant par mois - Monthly aggregation of revenue.
+Used for: Trend analysis and seasonal detection.
+
+Clients en retard - Overdue customers with outstanding payments.
+Calculated as: WHERE payment_date > due_date AND status != 'paid'.
+
+CA Variation - Year-over-year revenue comparison.
+Formula: (Current Year CA - Prior Year CA) / Prior Year CA * 100.
+Positive: Growth. Negative: Decline.
+            
