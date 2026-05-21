@@ -10,7 +10,7 @@ import streamlit as st
 import requests
 from datetime import datetime
 from config.settings import settings
-from services.auth_service import authenticate_user, register_user
+from services.auth_service import authenticate_user, register_user, create_session_token, validate_session_token, revoke_session_token
 from services.session_store import delete_session as delete_session_record
 import re
 
@@ -28,102 +28,169 @@ def inject_custom_css():
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
         :root {
-            --bg: #f8fafc;
-            --surface: rgba(255, 255, 255, 0.78);
+            --bg: #f0f4f8;
+            --surface: #ffffff;
             --surface-solid: #ffffff;
-            --text: #1f2937;
-            --text-muted: #6b7280;
-            --line: rgba(148, 163, 184, 0.16);
-            --accent: #4f46e5;
-            --accent-strong: #4338ca;
-            --shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
-            --shadow-soft: 0 8px 18px rgba(15, 23, 42, 0.05);
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --line: rgba(148, 163, 184, 0.2);
+            --accent: #2563eb;
+            --accent-strong: #1d4ed8;
+            --accent-hover: #1e40af;
+            --sidebar-bg: #0f172a;
+            --sidebar-surface: #1e293b;
+            --sidebar-text: #f1f5f9;
+            --sidebar-muted: #94a3b8;
+            --sidebar-accent: #3b82f6;
+            --sidebar-hover: rgba(255,255,255,0.06);
+            --shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+            --shadow-soft: 0 2px 8px rgba(15, 23, 42, 0.05);
+            --shadow-md: 0 8px 32px rgba(15, 23, 42, 0.10);
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         html, body, [data-testid="stAppViewContainer"] {
-            background: radial-gradient(circle at top left, rgba(79, 70, 229, 0.08), transparent 30%), linear-gradient(180deg, var(--bg), var(--bg));
+            background: var(--bg);
             color: var(--text);
             font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
         }
 
         [data-testid="stHeader"] {
-            background: rgba(248, 250, 252, 0.72);
-            backdrop-filter: blur(16px);
-            border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+            background: var(--bg);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.15);
         }
 
         [data-testid="stMainBlockContainer"] {
-            padding: 1.25rem 2rem 10rem 2rem !important;
+            padding: 4rem 2.5rem 10rem 2.5rem !important;
         }
 
         .main-content {
             padding: 0;
-            max-width: 1280px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
+        /* ── TOP BANNER ── */
         .top-nav {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 1rem;
-            margin-top: 0.7rem;
-            margin-bottom: 1rem;
-            padding: 0.8rem 1rem;
-            border-radius: 18px;
-            background: rgba(255, 255, 255, 0.68);
-            border: 1px solid rgba(148, 163, 184, 0.14);
+            margin-bottom: 1.5rem;
+            padding: 0.7rem 1.2rem;
+            border-radius: 10px;
+            background: #ffffff;
+            border: 1px solid rgba(148, 163, 184, 0.18);
             box-shadow: var(--shadow-soft);
-            backdrop-filter: blur(16px);
         }
 
         .top-nav-label {
-            font-size: 0.82rem;
+            font-size: 0.72rem;
             font-weight: 700;
             color: var(--accent);
             text-transform: uppercase;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.1em;
         }
 
         .top-nav-copy {
-            font-size: 0.88rem;
+            font-size: 0.82rem;
             color: var(--text-muted);
-            font-weight: 500;
+            font-weight: 400;
+            margin-top: 0.1rem;
         }
 
+        .top-nav-status {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #16a34a;
+        }
+
+        .top-nav-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 0 3px rgba(34,197,94,0.18);
+            display: inline-block;
+        }
+
+        /* ── MAIN HEADER ── */
         .header-section {
             background: transparent;
-            padding: 0.2rem 0 1.1rem 0;
-            margin-bottom: 0.9rem;
+            padding: 0 0 1.25rem 0;
+            margin-bottom: 0.5rem;
         }
 
         .header-title {
-            font-size: 2.4rem;
+            font-size: 2.2rem;
             font-weight: 800;
-            letter-spacing: -0.05em;
+            letter-spacing: -0.04em;
             color: var(--text);
-            margin-bottom: 0.35rem;
+            margin-bottom: 0.3rem;
+            line-height: 1.1;
         }
 
         .header-subtitle {
-            font-size: 1rem;
+            font-size: 0.97rem;
             color: var(--text-muted);
-            font-weight: 500;
+            font-weight: 400;
         }
 
+        /* ── HERO CARD ── */
+        .hero-card {
+            background: #ffffff;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            padding: 3rem 2rem 2.5rem 2rem;
+            margin-bottom: 1.75rem;
+            text-align: center;
+        }
+
+        .hero-illustration {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .hero-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 1rem;
+        }
+
+        .hero-example {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: #f8fafc;
+            border: 1px solid rgba(37, 99, 235, 0.18);
+            border-radius: 10px;
+            padding: 0.7rem 1.2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-top: 0.25rem;
+        }
+
+        .hero-copy {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.93rem;
+            margin-top: 0.75rem;
+        }
+
+        /* ── CHAT SHELL ── */
         .chat-shell {
-            background: rgba(255, 255, 255, 0.58);
-            border: 1px solid rgba(148, 163, 184, 0.14);
-            border-radius: 28px;
-            padding: 1.25rem;
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(20px);
+            background: #ffffff;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
         }
 
         .chat-messages-container {
@@ -153,147 +220,95 @@ def inject_custom_css():
         .user-bubble-content {
             background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
             color: white;
-            padding: 0.95rem 1.25rem;
-            border-radius: 18px 18px 6px 18px;
+            padding: 0.85rem 1.2rem;
+            border-radius: 16px 16px 4px 16px;
             max-width: 65%;
             word-wrap: break-word;
-            font-size: 0.95rem;
+            font-size: 0.93rem;
             line-height: 1.5;
-            box-shadow: 0 10px 24px rgba(79, 70, 229, 0.18);
+            box-shadow: 0 4px 16px rgba(37, 99, 235, 0.22);
         }
 
         .assistant-bubble-content {
-            background: rgba(255, 255, 255, 0.92);
+            background: #f8fafc;
             color: var(--text);
-            padding: 1rem 1.25rem;
-            border-radius: 18px 18px 18px 6px;
+            padding: 0.9rem 1.2rem;
+            border-radius: 16px 16px 16px 4px;
             max-width: 65%;
             word-wrap: break-word;
-            font-size: 0.95rem;
+            font-size: 0.93rem;
             line-height: 1.5;
-            border: 1px solid rgba(148, 163, 184, 0.18);
+            border: 1px solid rgba(148, 163, 184, 0.2);
             box-shadow: var(--shadow-soft);
         }
 
         @keyframes slideInRight {
-            from { opacity: 0; transform: translateX(20px); }
+            from { opacity: 0; transform: translateX(16px); }
             to { opacity: 1; transform: translateX(0); }
         }
 
         @keyframes slideInLeft {
-            from { opacity: 0; transform: translateX(-20px); }
+            from { opacity: 0; transform: translateX(-16px); }
             to { opacity: 1; transform: translateX(0); }
         }
 
         .response-card {
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 20px;
-            padding: 1rem 1.25rem;
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 0.9rem 1.2rem;
             margin: 0;
-            border: 1px solid rgba(148, 163, 184, 0.18);
+            border: 1px solid rgba(148, 163, 184, 0.2);
             color: var(--text);
             box-shadow: var(--shadow-soft);
         }
 
         .timestamp {
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             color: #94a3b8;
-            margin-top: 0.5rem;
+            margin-top: 0.45rem;
         }
 
-        .hero-card {
-            background: rgba(255, 255, 255, 0.82);
-            border: 1px solid rgba(148, 163, 184, 0.16);
-            border-radius: 28px;
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(18px);
-            padding: 2rem 1.8rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .hero-illustration {
-            width: 64px;
-            height: 64px;
-            border-radius: 22px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1rem auto;
-            color: var(--accent);
-            background: linear-gradient(180deg, rgba(79, 70, 229, 0.14), rgba(79, 70, 229, 0.04));
-            border: 1px solid rgba(79, 70, 229, 0.16);
-            font-size: 1.75rem;
-        }
-
-        .hero-title {
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: var(--text);
-            text-align: center;
-            margin-bottom: 0.35rem;
-        }
-
-        .hero-copy {
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 0.95rem;
-        }
-
+        /* ── SUGGESTIONS SECTION ── */
         .suggestions-section {
             padding: 0;
             background: transparent;
             border-top: none;
-            margin-top: 1.1rem;
+            margin-top: 0.5rem;
+            margin-bottom: 0.25rem;
         }
 
         .suggestions-title {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 0.75rem;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 0.85rem;
         }
 
         .suggestion-card-wrap .stButton > button {
             width: 100%;
-            background: rgba(255, 255, 255, 0.92) !important;
+            background: #ffffff !important;
             color: var(--text) !important;
-            border: 1px solid rgba(148, 163, 184, 0.18) !important;
-            border-radius: 20px !important;
-            min-height: 92px;
-            padding: 1rem 1rem !important;
+            border: 1px solid rgba(148, 163, 184, 0.22) !important;
+            border-radius: 10px !important;
+            min-height: 52px;
+            padding: 0.75rem 1.1rem !important;
             text-align: left;
             box-shadow: var(--shadow-soft);
-            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            font-size: 0.9rem !important;
+            font-weight: 500 !important;
+            transition: all 0.18s ease;
         }
 
         .suggestion-card-wrap .stButton > button:hover {
-            transform: translateY(-2px);
-            border-color: rgba(79, 70, 229, 0.26) !important;
-            box-shadow: 0 14px 24px rgba(15, 23, 42, 0.08);
+            transform: translateY(-1px);
+            border-color: rgba(37, 99, 235, 0.3) !important;
+            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.08) !important;
+            color: var(--accent) !important;
         }
 
-        .suggestion-card-title {
-            display: block;
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: var(--text);
-            margin-top: 0.55rem;
-        }
+        .custom-input-row { margin-top: 1rem; }
 
-        .suggestion-card-subtitle {
-            display: block;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-top: 0.15rem;
-            font-weight: 500;
-        }
-
-        .custom-input-row {
-            margin-top: 1rem;
-        }
-
+        /* ── STICKY INPUT BAR ── */
         div[data-testid="stHorizontalBlock"]:has(div[data-testid="stTextInput"]) {
             position: sticky;
             left: auto;
@@ -302,10 +317,10 @@ def inject_custom_css():
             z-index: 90;
             align-items: center;
             background: #ffffff;
-            border: 1px solid rgba(226, 232, 240, 1);
+            border: 1px solid rgba(148, 163, 184, 0.22);
             border-radius: 999px;
-            padding: 0.2rem 0.35rem;
-            box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+            padding: 0.25rem 0.4rem;
+            box-shadow: 0 8px 32px rgba(15, 23, 42, 0.12);
         }
 
         div[data-testid="stHorizontalBlock"]:has(div[data-testid="stTextInput"]) > div {
@@ -314,18 +329,18 @@ def inject_custom_css():
 
         .stTextInput > div > div > input {
             background: #ffffff !important;
-            border: 1px solid rgba(226, 232, 240, 1) !important;
+            border: none !important;
             border-radius: 999px !important;
             color: var(--text) !important;
             font-size: 0.93rem !important;
-            padding: 0.42rem 1.15rem !important;
-            min-height: 32px !important;
+            padding: 0.5rem 1.2rem !important;
+            min-height: 34px !important;
             box-shadow: none !important;
         }
 
         .stTextInput > div > div > input:focus {
-            border-color: rgba(79, 70, 229, 0.35) !important;
-            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12) !important;
+            border-color: transparent !important;
+            box-shadow: none !important;
         }
 
         .stTextInput > div > div > input::placeholder {
@@ -337,97 +352,115 @@ def inject_custom_css():
         }
 
         [data-testid="stForm"] [data-testid="stFormSubmitButton"] > button {
-            height: 44px !important;
-            min-height: 44px !important;
+            height: 42px !important;
+            min-height: 42px !important;
             width: auto !important;
             max-width: none !important;
-            border-radius: 12px !important;
-            background: #ffffff !important;
-            color: var(--text) !important;
-            border: 1px solid rgba(148, 163, 184, 0.16) !important;
-            padding: 0 0.9rem !important;
+            border-radius: 999px !important;
+            background: var(--accent) !important;
+            color: #ffffff !important;
+            border: none !important;
+            padding: 0 1.4rem !important;
+            font-weight: 600 !important;
+            font-size: 0.88rem !important;
             line-height: 1 !important;
-            box-shadow: var(--shadow-soft) !important;
+            box-shadow: 0 4px 14px rgba(37,99,235,0.35) !important;
+            transition: background 0.18s ease, box-shadow 0.18s ease !important;
         }
 
+        [data-testid="stForm"] [data-testid="stFormSubmitButton"] > button:hover {
+            background: var(--accent-hover) !important;
+            box-shadow: 0 6px 20px rgba(37,99,235,0.45) !important;
+        }
+
+        /* ══════════════════════════════════════════
+           SIDEBAR — Navy dark theme
+        ══════════════════════════════════════════ */
         [data-testid="stSidebar"] {
-            background: rgba(248, 250, 252, 0.84);
-            backdrop-filter: blur(18px);
-            border-right: 1px solid rgba(148, 163, 184, 0.14);
+            background: var(--sidebar-bg) !important;
+            border-right: 1px solid rgba(255,255,255,0.06);
         }
 
         [data-testid="stSidebarCollapseButton"] [data-testid="stBaseButton-headerNoPadding"],
         [data-testid="stSidebarCollapseButton"] [data-testid="stIconMaterial"] {
-            color: #000000 !important;
+            color: #94a3b8 !important;
         }
 
         [data-testid="stHeader"] [data-testid="stBaseButton-headerNoPadding"],
         [data-testid="stHeader"] [data-testid="stBaseButton-headerNoPadding"] [data-testid="stIconMaterial"] {
-            color: #000000 !important;
+            color: var(--text) !important;
         }
 
         [data-testid="stSidebar"] > [data-testid="stVerticalBlock"] {
-            gap: 0.8rem;
-            padding: 1rem 0.9rem 1.25rem 0.9rem;
+            gap: 0.6rem;
+            padding: 1.25rem 1rem 1.5rem 1rem;
         }
 
-        .sidebar-header {
-            font-size: 1.1rem;
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            color: var(--text);
-            margin-bottom: 0.25rem;
-            padding: 0 0.15rem;
+        /* Sidebar text overrides */
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] span,
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] div {
+            color: var(--sidebar-text) !important;
+        }
+
+        [data-testid="stSidebar"] input {
+            background: rgba(255,255,255,0.07) !important;
+            border: 1px solid rgba(255,255,255,0.12) !important;
+            color: var(--sidebar-text) !important;
+            border-radius: 8px !important;
+        }
+
+        [data-testid="stSidebar"] input::placeholder {
+            color: #64748b !important;
         }
 
         .sidebar-logo-row {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding: 0.15rem 0.15rem 0.8rem 0.15rem;
-            margin-bottom: 0.25rem;
+            padding: 0 0 1rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            margin-bottom: 0.5rem;
         }
 
         .sidebar-logo-icon {
-            width: 2.5rem;
-            height: 2.5rem;
-            border-radius: 14px;
+            width: 2.4rem;
+            height: 2.4rem;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, rgba(79, 70, 229, 0.15), rgba(79, 70, 229, 0.05));
-            color: var(--accent);
-            border: 1px solid rgba(79, 70, 229, 0.18);
-            box-shadow: var(--shadow-soft);
+            background: rgba(59,130,246,0.18);
+            color: var(--sidebar-accent);
+            border: 1px solid rgba(59,130,246,0.25);
+            font-size: 1.1rem;
             flex: 0 0 auto;
         }
 
-        .sidebar-logo-text {
-            display: flex;
-            flex-direction: column;
-            gap: 0.1rem;
-        }
+        .sidebar-logo-text { display: flex; flex-direction: column; gap: 0.08rem; }
 
         .sidebar-logo-title {
-            font-size: 1rem;
-            font-weight: 800;
-            color: var(--text);
-            letter-spacing: -0.03em;
+            font-size: 0.97rem;
+            font-weight: 700;
+            color: #f1f5f9 !important;
+            letter-spacing: -0.02em;
         }
 
         .sidebar-logo-subtitle {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            font-weight: 500;
+            font-size: 0.75rem;
+            color: #64748b !important;
+            font-weight: 400;
         }
 
         .sidebar-section-title {
-            font-size: 0.82rem;
+            font-size: 0.7rem;
             font-weight: 700;
-            color: var(--text-muted);
+            color: #475569 !important;
             text-transform: uppercase;
-            letter-spacing: 0.06em;
-            margin-bottom: 0.6rem;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.45rem;
+            margin-top: 0.3rem;
             display: block;
         }
 
@@ -435,67 +468,105 @@ def inject_custom_css():
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0.7rem 0.85rem;
-            border-radius: 14px;
-            background: rgba(255, 255, 255, 0.72);
-            border: 1px solid rgba(148, 163, 184, 0.14);
-            margin-bottom: 0.5rem;
-            color: var(--text);
-            box-shadow: var(--shadow-soft);
+            padding: 0.6rem 0.8rem;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.07);
+            margin-bottom: 0.4rem;
         }
 
         .sidebar-mini-stat-label {
-            font-size: 0.82rem;
-            color: var(--text-muted);
-            font-weight: 600;
+            font-size: 0.8rem;
+            color: #94a3b8 !important;
+            font-weight: 500;
         }
 
         .sidebar-mini-stat-value {
-            font-size: 0.88rem;
-            color: var(--text);
-            font-weight: 700;
+            font-size: 0.85rem;
+            color: #f1f5f9 !important;
+            font-weight: 600;
         }
 
         .status-badge {
-            display: inline-block;
-            background: rgba(34, 197, 94, 0.12);
-            color: #166534;
-            padding: 0.3rem 0.8rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80 !important;
+            padding: 0.25rem 0.65rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
             font-weight: 700;
+            border: 1px solid rgba(34,197,94,0.2);
         }
 
+        /* Sidebar buttons — global override inside sidebar */
+        [data-testid="stSidebar"] div[data-testid="stButton"] > button,
+        [data-testid="stSidebar"] .stButton > button {
+            background: rgba(255,255,255,0.92) !important;
+            color: #1e293b !important;
+            border: 1px solid rgba(255,255,255,0.3) !important;
+            border-radius: 8px !important;
+            padding: 0.45rem 0.5rem !important;
+            font-weight: 600 !important;
+            font-size: 0.78rem !important;
+            box-shadow: none !important;
+            transition: background 0.15s ease !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            line-height: 1.3 !important;
+            min-height: 36px !important;
+            height: auto !important;
+        }
+
+        [data-testid="stSidebar"] div[data-testid="stButton"] > button:hover,
+        [data-testid="stSidebar"] .stButton > button:hover {
+            background: #ffffff !important;
+            border-color: rgba(255,255,255,0.5) !important;
+            color: #1e293b !important;
+        }
+
+        [data-testid="stSidebar"] div[data-testid="stButton"] > button p,
+        [data-testid="stSidebar"] .stButton > button p,
+        [data-testid="stSidebar"] div[data-testid="stButton"] > button span,
+        [data-testid="stSidebar"] .stButton > button span {
+            color: #1e293b !important;
+        }
+
+        /* New Analysis CTA — accent blue */
         .st-key-new_chat [data-testid="stBaseButton-secondary"] {
-            background: #111827 !important;
+            background: var(--accent) !important;
             border: none !important;
-            border-radius: 999px !important;
-            padding: 0.95rem 1rem !important;
-            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.22);
-            font-weight: 700;
+            border-radius: 8px !important;
+            padding: 0.7rem 1rem !important;
+            box-shadow: 0 4px 14px rgba(37,99,235,0.35) !important;
+            font-weight: 600 !important;
+            font-size: 0.88rem !important;
             color: #ffffff !important;
         }
 
         .st-key-new_chat [data-testid="stBaseButton-secondary"]:hover {
-            transform: translateY(-1px);
-            background: #000000 !important;
-            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.26);
+            background: var(--accent-hover) !important;
+            box-shadow: 0 6px 20px rgba(37,99,235,0.45) !important;
+        }
+
+        /* Logout — subtle ghost */
+        .st-key-logout_user [data-testid="stBaseButton-secondary"] {
+            background: rgba(239,68,68,0.1) !important;
+            border: 1px solid rgba(239,68,68,0.2) !important;
+            color: #fca5a5 !important;
+            border-radius: 8px !important;
+            font-size: 0.82rem !important;
+        }
+
+        .st-key-logout_user [data-testid="stBaseButton-secondary"]:hover {
+            background: rgba(239,68,68,0.18) !important;
         }
 
         .sidebar-pill-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0.55rem;
-        }
-
-        .sidebar-pill-grid .stButton > button {
-            background: #ffffff !important;
-            color: var(--text) !important;
-            border: 1px solid rgba(148, 163, 184, 0.16) !important;
-            border-radius: 999px !important;
-            padding: 0.7rem 0.8rem !important;
-            font-weight: 600;
-            box-shadow: var(--shadow-soft);
+            gap: 0.45rem;
         }
 
         div[class*="st-key-session_delete_"] {
@@ -516,71 +587,64 @@ def inject_custom_css():
         div[class*="st-key-session_delete_"] [data-testid="stBaseButton-secondary"] {
             width: 100% !important;
             min-width: 0 !important;
-            min-height: 42px !important;
-            padding: 0.35rem 0.5rem !important;
+            min-height: 38px !important;
+            padding: 0.3rem 0.4rem !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             line-height: 1 !important;
             text-align: center !important;
-            font-size: 1rem !important;
+            font-size: 0.9rem !important;
         }
 
         .sidebar-list-item {
             display: flex;
             align-items: center;
-            gap: 0.7rem;
-            padding: 0.75rem 0.85rem;
-            background: rgba(255, 255, 255, 0.72);
-            border: 1px solid rgba(148, 163, 184, 0.14);
-            border-radius: 16px;
-            box-shadow: var(--shadow-soft);
-            color: var(--text);
-            font-size: 0.9rem;
+            gap: 0.6rem;
+            padding: 0.6rem 0.8rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px;
+            color: #cbd5e1 !important;
+            font-size: 0.85rem;
             line-height: 1.35;
-        }
-
-        .sidebar-dot {
-            width: 0.5rem;
-            height: 0.5rem;
-            border-radius: 999px;
-            background: #22c55e;
-            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
-            flex: 0 0 auto;
+            margin-bottom: 0.35rem;
         }
 
         .sidebar-icon-line {
-            width: 1.6rem;
-            height: 1.6rem;
-            border-radius: 999px;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 6px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            color: var(--accent);
-            background: rgba(79, 70, 229, 0.06);
-            border: 1px solid rgba(79, 70, 229, 0.12);
+            color: var(--sidebar-accent) !important;
+            background: rgba(59,130,246,0.12);
             flex: 0 0 auto;
-            font-size: 0.82rem;
+            font-size: 0.78rem;
         }
 
         .sidebar-help {
-            color: var(--text-muted);
-            font-size: 0.86rem;
+            color: #475569 !important;
+            font-size: 0.8rem;
             line-height: 1.5;
-            padding: 0.2rem 0.1rem 0 0.1rem;
+            padding: 0.1rem 0;
         }
 
+        /* ══════════════════════════════════════════
+           MAIN AREA — global button defaults
+        ══════════════════════════════════════════ */
         div[data-testid="stButton"] > button,
         .stButton > button,
         button[kind="secondary"] {
             background: #ffffff !important;
             color: var(--text) !important;
-            border: 1px solid rgba(148, 163, 184, 0.18) !important;
-            border-radius: 14px !important;
-            padding: 0.7rem 1rem !important;
-            font-weight: 600 !important;
-            transition: all 0.2s ease !important;
-            font-size: 0.9rem !important;
+            border: 1px solid rgba(148, 163, 184, 0.22) !important;
+            border-radius: 8px !important;
+            padding: 0.6rem 0.95rem !important;
+            font-weight: 500 !important;
+            transition: all 0.18s ease !important;
+            font-size: 0.88rem !important;
             box-shadow: var(--shadow-soft) !important;
         }
 
@@ -588,14 +652,14 @@ def inject_custom_css():
         .stButton > button:hover,
         button[kind="secondary"]:hover {
             background: #f8fafc !important;
-            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08) !important;
-            border-color: rgba(79, 70, 229, 0.22) !important;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07) !important;
+            border-color: rgba(37, 99, 235, 0.25) !important;
         }
 
         div[data-testid="stButton"] > button:active,
         .stButton > button:active,
         button[kind="secondary"]:active {
-            background: #eef2ff !important;
+            background: #eff6ff !important;
         }
 
         .sql-code-container {
@@ -692,191 +756,213 @@ def inject_custom_css():
             background: #9ca3af;
         }
 
-        .auth-shell {
-            max-width: 1120px;
-            margin: 1.25rem auto 0 auto;
-            padding: 1.25rem;
+        /* ══════════════════════════════════════════
+           AUTH PAGE
+        ══════════════════════════════════════════ */
+
+        /* Page-level: light grey background, center content */
+        [data-testid="stAppViewContainer"]:has(.auth-left-panel) {
+            background: #e8edf2 !important;
         }
 
-        .auth-grid {
-            display: grid;
-            grid-template-columns: 1.1fr 0.95fr;
-            gap: 1rem;
-            align-items: stretch;
+        /* Remove all Streamlit padding on auth page */
+        .auth-left-panel ~ * [data-testid="stMainBlockContainer"],
+        .auth-right-panel ~ * [data-testid="stMainBlockContainer"] {
+            padding: 0 !important;
         }
 
-        .auth-hero,
-        .auth-card {
-            background: rgba(255, 255, 255, 0.82);
-            border: 1px solid rgba(148, 163, 184, 0.16);
-            border-radius: 28px;
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(18px);
-        }
-
-        .auth-hero {
-            padding: 2.25rem;
+        /* Card wrapper: the two columns side-by-side */
+        .auth-left-panel {
+            background: #0f172a;
+            border-radius: 12px 0 0 12px;
+            padding: 2.5rem 2rem;
+            min-height: 440px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            min-height: 520px;
-            background: radial-gradient(circle at top right, rgba(79, 70, 229, 0.12), transparent 34%), rgba(255, 255, 255, 0.84);
+            margin: 0;
+        }
+
+        .auth-right-panel {
+            background: #ffffff;
         }
 
         .auth-kicker {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.45rem;
-            font-size: 0.8rem;
+            display: inline-block;
+            background: #2563eb;
+            color: #ffffff !important;
+            font-size: 0.68rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--accent);
-            margin-bottom: 0.9rem;
+            letter-spacing: 0.12em;
+            padding: 0.3rem 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
         }
 
         .auth-title {
-            font-size: 2.35rem;
-            line-height: 1.05;
-            letter-spacing: -0.05em;
-            color: var(--text);
-            margin-bottom: 0.8rem;
+            font-size: 1.75rem;
+            line-height: 1.2;
             font-weight: 800;
-        }
-
-        .auth-copy {
-            font-size: 1rem;
-            line-height: 1.6;
-            color: var(--text-muted);
-            max-width: 42rem;
+            color: #ffffff !important;
+            margin-bottom: 2rem;
+            letter-spacing: -0.03em;
         }
 
         .auth-points {
-            display: grid;
-            gap: 0.75rem;
-            margin-top: 1.4rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 2rem;
         }
 
         .auth-point {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 0.75rem;
-            padding: 0.85rem 0.95rem;
-            border-radius: 16px;
-            background: rgba(248, 250, 252, 0.8);
-            border: 1px solid rgba(148, 163, 184, 0.14);
-            color: var(--text);
-            font-weight: 600;
+            font-size: 0.88rem;
+            font-weight: 400;
+            line-height: 1.45;
+            color: #cbd5e1 !important;
         }
 
-        .auth-point-badge {
-            width: 2rem;
-            height: 2rem;
-            border-radius: 999px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(79, 70, 229, 0.1);
-            color: var(--accent);
-            font-size: 0.85rem;
+        .auth-point span { color: #cbd5e1 !important; }
+
+        .auth-point-icon {
+            font-size: 1rem;
             flex: 0 0 auto;
+            margin-top: 0.05rem;
         }
 
-        .auth-card {
-            padding: 1.6rem;
+        .auth-note {
+            color: #475569 !important;
+            font-size: 0.78rem;
+            line-height: 1.5;
         }
 
         .auth-card-title {
-            font-size: 1.35rem;
+            font-size: 2rem;
             font-weight: 800;
-            color: var(--text);
-            margin-bottom: 0.35rem;
+            color: #1e293b !important;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.04em;
         }
 
-        .auth-card-copy {
-            color: var(--text-muted);
-            margin-bottom: 1rem;
-            line-height: 1.5;
+        /* Column layout: glue the two columns together as one card */
+        .auth-left-panel ~ [data-testid="stVerticalBlock"],
+        div:has(> .auth-left-panel) {
+            padding: 0 !important;
+            margin: 0 !important;
         }
 
-        /* Auth buttons: match logout style (rounded rectangle, bordered) */
-        .auth-card div[data-testid="stButton"] > button,
-        .auth-card div[data-testid="stFormSubmitButton"] > button,
-        .auth-card .stFormSubmitButton > button,
-        .auth-card .stFormSubmitButton button,
-        .auth-card .stButton > button,
-        .auth-card button,
-        .auth-card button > div,
-        .auth-card button > span {
-            border-radius: 12px !important;
-            border: 1px solid rgba(148, 163, 184, 0.16) !important;
+        /* Force columns container to look like a unified card */
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) {
+            gap: 0 !important;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 12px 48px rgba(15,23,42,0.14);
+            max-width: 860px;
+            margin: 8vh auto 0 auto !important;
+            align-items: stretch !important;
+        }
+
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) > [data-testid="stColumn"] {
+            padding: 0 !important;
+        }
+
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) > [data-testid="stColumn"]:first-child {
+            background: #0f172a !important;
+            border-radius: 16px 0 0 16px !important;
+        }
+
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) > [data-testid="stColumn"]:last-child {
             background: #ffffff !important;
-            color: var(--text) !important;
-            height: 44px !important;
-            padding: 0 0.9rem !important;
+            border-radius: 0 16px 16px 0 !important;
+            padding: 2.5rem 2.5rem 2rem 2.5rem !important;
+        }
+
+        /* Right column inputs */
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) [data-testid="stColumn"]:last-child label {
+            font-size: 0.88rem !important;
             font-weight: 600 !important;
-            box-shadow: var(--shadow-soft) !important;
-            transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            width: 100% !important;
-            max-width: none !important;
+            color: #1e293b !important;
         }
 
-        /* Also force any inner element to not remain circular */
-        .auth-card button, .auth-card button * {
-            border-radius: 12px !important;
-        }
-
-        /* Override Streamlit's compact circular form submit button when inside auth-card */
-        .auth-card [data-testid="stForm"] [data-testid="stFormSubmitButton"] > button,
-        .auth-card [data-testid="stFormSubmitButton"] > button {
-            width: 100% !important;
-            max-width: none !important;
-            height: 44px !important;
-            min-height: 44px !important;
-            border-radius: 12px !important;
-            padding: 0 0.9rem !important;
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) [data-testid="stColumn"]:last-child .stTextInput > div > div > input {
+            border: 1px solid #d1d5db !important;
+            border-radius: 8px !important;
             background: #ffffff !important;
-            color: var(--text) !important;
-            box-shadow: var(--shadow-soft) !important;
-            border: 1px solid rgba(148, 163, 184, 0.16) !important;
+            color: #1e293b !important;
+            font-size: 0.93rem !important;
+            padding: 0.65rem 0.9rem !important;
+            box-shadow: none !important;
         }
 
-        .auth-card .stButton > button[role="button"],
-        .auth-card div[data-testid="stFormSubmitButton"] > button {
-            border-radius: 12px !important;
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) [data-testid="stColumn"]:last-child .stTextInput > div > div > input:focus {
+            border-color: #2563eb !important;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
         }
 
-        .auth-card div[data-testid="stButton"] > button:hover,
-        .auth-card div[data-testid="stFormSubmitButton"] > button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 12px 20px rgba(15, 23, 42, 0.08) !important;
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) [data-testid="stColumn"]:last-child .stTextInput > div > div > input::placeholder {
+            color: #9ca3af !important;
         }
 
-        .auth-card div[data-testid="stButton"] > button:active,
-        .auth-card div[data-testid="stFormSubmitButton"] > button:active {
-            transform: translateY(0);
+        /* Submit button */
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) [data-testid="stColumn"]:last-child [data-testid="stFormSubmitButton"] > button {
+            width: 100% !important;
+            max-width: none !important;
+            height: 48px !important;
+            min-height: 48px !important;
+            border-radius: 8px !important;
+            background: #2563eb !important;
+            color: #ffffff !important;
+            border: none !important;
+            font-weight: 600 !important;
+            font-size: 1rem !important;
+            box-shadow: 0 4px 14px rgba(37,99,235,0.3) !important;
+            margin-top: 0.5rem !important;
         }
 
-        /* Ensure the small icon/button circles elsewhere are unaffected by forcing width only inside auth-card */
-
-        .auth-note {
-            margin-top: 1rem;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            line-height: 1.5;
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) [data-testid="stColumn"]:last-child [data-testid="stFormSubmitButton"] > button:hover {
+            background: #1d4ed8 !important;
         }
 
-        @media (max-width: 900px) {
-            .auth-grid {
-                grid-template-columns: 1fr;
-            }
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) [data-testid="stColumn"]:last-child [data-testid="stFormSubmitButton"] > button * {
+            color: #ffffff !important;
+        }
 
-            .auth-hero {
-                min-height: auto;
-            }
+        /* ── Auth card shape fix: override global 999px radius ── */
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) {
+            border-radius: 16px !important;
+            overflow: hidden !important;
+        }
+
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) > [data-testid="stColumn"]:first-child,
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) > [data-testid="stColumn"]:first-child > div,
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) > [data-testid="stColumn"]:first-child > div > div {
+            border-radius: 0 !important;
+        }
+
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) > [data-testid="stColumn"]:last-child,
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) > [data-testid="stColumn"]:last-child > div,
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) > [data-testid="stColumn"]:last-child > div > div {
+            border-radius: 0 !important;
+        }
+
+        /* Override global input 999px radius inside auth */
+        [data-testid="stHorizontalBlock"]:has(.auth-left-panel) .stTextInput > div > div > input {
+            border-radius: 8px !important;
+            border: 1px solid #d1d5db !important;
+        }
+
+        @media (max-width: 780px) {
+            [data-testid="stHorizontalBlock"]:has(.auth-left-panel) { flex-direction: column; margin: 2rem auto !important; }
+        }
+            .auth-page-wrap [data-testid="stColumn"]:first-child { border-radius: 16px 16px 0 0 !important; }
+            .auth-page-wrap [data-testid="stColumn"]:last-child { border-radius: 0 0 16px 16px !important; }
+        }
+            .auth-left { flex: none; min-height: auto; }
+            .auth-right { flex: none; }
         }
     </style>
     """, unsafe_allow_html=True)
@@ -924,6 +1010,19 @@ if "auth_user" not in st.session_state:
 
 if "auth_mode" not in st.session_state:
     st.session_state.auth_mode = "login"
+
+if "auth_token" not in st.session_state:
+    st.session_state.auth_token = None
+
+# Restore session from query param on page refresh
+if not st.session_state.authenticated:
+    _token_param = st.query_params.get("token", "")
+    if _token_param:
+        _restored_user = validate_session_token(_token_param)
+        if _restored_user:
+            st.session_state.authenticated = True
+            st.session_state.auth_user = _restored_user
+            st.session_state.auth_token = _token_param
 
 # Helper Functions
 def extract_kpi_value(text):
@@ -1161,11 +1260,18 @@ def _set_authenticated_user(user: dict | None):
     st.session_state.authenticated = True
     st.session_state.auth_user = user or {}
     st.session_state.auth_mode = "login"
+    token = create_session_token(user or {})
+    st.session_state.auth_token = token
+    st.query_params["token"] = token
 
 
 def _logout_user():
+    token = st.session_state.get("auth_token")
+    if token:
+        revoke_session_token(token)
     st.session_state.authenticated = False
     st.session_state.auth_user = None
+    st.session_state.auth_token = None
     st.session_state.session_id = None
     st.session_state.selected_session_id = None
     st.session_state.session_name = None
@@ -1176,98 +1282,69 @@ def _logout_user():
     st.session_state.user_suggestion = None
     st.session_state.pending_prompt = None
     st.session_state.auth_mode = "login"
+    st.query_params.clear()
 
 
 def render_auth_screen():
-    st.markdown('<div class="auth-shell">', unsafe_allow_html=True)
-    left_col, right_col = st.columns([1.1, 0.95])
+    left_col, right_col = st.columns([4, 6], gap="small")
 
     with left_col:
         st.markdown(
             """
-            <div class="auth-hero">
+            <div class="auth-left-panel">
                 <div>
-                    <div class="auth-kicker">Accès sécurisé</div>
+                    <div class="auth-kicker">ACCÈS SÉCURISÉ</div>
                     <div class="auth-title">Connectez-vous pour accéder au chat BI.</div>
-                    <div class="auth-copy">
-                        Le chat reste inchangé après authentification. Si vous n’avez pas encore de compte,
-                        créez-en un depuis la page d’inscription pour débloquer l’accès.
-                    </div>
                     <div class="auth-points">
-                        <div class="auth-point"><span class="auth-point-badge">1</span><span>Connexion obligatoire avant d’utiliser le chat</span></div>
-                        <div class="auth-point"><span class="auth-point-badge">2</span><span>Création de compte locale, rapide et sans dépendance externe</span></div>
-                        <div class="auth-point"><span class="auth-point-badge">3</span><span>Une fois authentifié, vous retrouvez l’interface BI telle quelle</span></div>
+                        <div class="auth-point">
+                            <span class="auth-point-icon">🛡️</span>
+                            <span>Connexion obligatoire avant d&#39;utiliser le chat</span>
+                        </div>
+                        <div class="auth-point">
+                            <span class="auth-point-icon">👤</span>
+                            <span>Création de compte locale, rapide et sans dépendance externe</span>
+                        </div>
+                        <div class="auth-point">
+                            <span class="auth-point-icon">🖥️</span>
+                            <span>Une fois authentifié, retrouvez votre interface BI intacte</span>
+                        </div>
                     </div>
                 </div>
-                <div class="auth-note">Astuce: utilisez votre email ou votre nom d’utilisateur pour vous connecter.</div>
+                <div class="auth-note">Astuce : utilisez votre email ou votre nom d&#39;utilisateur pour vous connecter.</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
     with right_col:
-        st.markdown('<div class="auth-card">', unsafe_allow_html=True)
-        st.markdown('<div class="auth-card-title">Bienvenue</div>', unsafe_allow_html=True)
-        st.markdown('<div class="auth-card-copy">Choisissez une action ci-dessous.</div>', unsafe_allow_html=True)
-
-        switch_left, switch_right = st.columns(2)
-        with switch_left:
-            if st.button("Se connecter", use_container_width=True, key="auth_switch_login"):
-                st.session_state.auth_mode = "login"
-                st.rerun()
-        with switch_right:
-            if st.button("Créer un compte", use_container_width=True, key="auth_switch_register"):
-                st.session_state.auth_mode = "register"
-                st.rerun()
-
-        if st.session_state.auth_mode == "register":
-            st.subheader("Créer un compte")
-            with st.form("register_form", clear_on_submit=False):
-                full_name = st.text_input("Nom complet", placeholder="Votre nom complet")
-                email = st.text_input("Email", placeholder="vous@exemple.com")
-                username = st.text_input("Username", placeholder="username")
-                password = st.text_input("Mot de passe", type="password", placeholder="Mot de passe")
-                confirm_password = st.text_input("Confirmer le mot de passe", type="password", placeholder="Confirmer le mot de passe")
-                register_submitted = st.form_submit_button("Créer le compte", use_container_width=True)
-
-            if register_submitted:
-                if password != confirm_password:
-                    st.error("Les deux mots de passe ne correspondent pas.")
-                else:
-                    success, message, user = register_user(full_name, email, username, password)
-                    if success:
-                        st.success(message)
-                        _set_authenticated_user(user)
-                        st.rerun()
-                    else:
-                        st.error(message)
-        else:
-            st.subheader("Se connecter")
-            with st.form("login_form", clear_on_submit=False):
-                identifier = st.text_input("Email ou nom d'utilisateur", placeholder="vous@exemple.com ou identifiant")
-                password = st.text_input("Mot de passe", type="password", placeholder="Votre mot de passe")
-                login_submitted = st.form_submit_button("Se connecter", use_container_width=True)
-
-            if login_submitted:
-                success, message, user = authenticate_user(identifier, password)
-                if success:
-                    st.success(message)
-                    _set_authenticated_user(user)
-                    st.rerun()
-                else:
-                    st.error(message)
-
         st.markdown(
             """
-            <div class="auth-note">
-                Si vous avez déjà un compte, connectez-vous. Sinon, créez d’abord un compte pour accéder au chat.
+            <div class="auth-right-panel">
+                <div class="auth-card-title">Bienvenue</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        st.markdown('</div>', unsafe_allow_html=True)
+        with st.form("login_form", clear_on_submit=False):
+            identifier = st.text_input(
+                "Email ou nom d'utilisateur",
+                placeholder="vous@exemple.com ou identifiant",
+            )
+            password = st.text_input(
+                "Mot de passe",
+                type="password",
+                placeholder="Votre mot de passe",
+            )
+            login_submitted = st.form_submit_button("Se connecter", use_container_width=True)
 
-    st.markdown('</div>', unsafe_allow_html=True)
+        if login_submitted:
+            success, message, user = authenticate_user(identifier, password)
+            if success:
+                st.success(message)
+                _set_authenticated_user(user)
+                st.rerun()
+            else:
+                st.error(message)
 
 
 if not st.session_state.authenticated:
@@ -1438,7 +1515,7 @@ st.markdown(
             <div class="top-nav-label">Premium BI Workspace</div>
             <div class="top-nav-copy">Interface SaaS moderne pour explorer vos données métier</div>
         </div>
-        <div class="top-nav-copy">● Connexion active</div>
+        <div class="top-nav-status"><span class="top-nav-dot"></span>Connexion active</div>
     </div>
     """,
     unsafe_allow_html=True,
@@ -1466,8 +1543,8 @@ with chat_container:
         st.markdown(
             """
             <div class="hero-card">
-                <div class="hero-illustration">◌</div>
-                <div class="hero-title">Bienvenue ! Posez une question...</div>
+                <div class="hero-title">Bienvenue | Lancez une analyse</div>
+                <div class="hero-example">📊 Quel est mon CA de 2024 ?</div>
                 <div class="hero-copy">Lancez une analyse, comparez vos indicateurs et explorez vos résultats en langage naturel.</div>
             </div>
             """,
@@ -1489,17 +1566,17 @@ if len(st.session_state.messages) < 1:
     st.markdown(
         """
         <div class="suggestions-section">
-            <div class="suggestions-title">Essayez un exemple</div>
+            <div class="suggestions-title">Explorez vos données</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
     suggestions = [
-        ("▣", "Quel est mon CA de 2024 ?", "sug_1"),
-        ("◌", "Quels sont mes Top 5 Clients ?", "sug_2"),
-        ("▤", "Quel est mon CA par mois ?", "sug_3"),
-        ("⇄", "Derniers 10 mois", "sug_4")
+        ("📊", "Quel est mon CA de 2024 ?", "sug_1"),
+        ("🏆", "Quels sont mes Top 5 Clients ?", "sug_2"),
+        ("📈", "Quel est mon CA par mois ?", "sug_3"),
+        ("📅", "Derniers 10 mois", "sug_4")
     ]
 
     for row_start in range(0, len(suggestions), 2):
@@ -1516,7 +1593,7 @@ if len(st.session_state.messages) < 1:
                     st.markdown('</div>', unsafe_allow_html=True)
 
 with st.form("chat_input_form", clear_on_submit=False):
-    input_col, send_col = st.columns([12, 1])
+    input_col, send_col = st.columns([8, 2])
     with input_col:
         prompt = st.text_input(
             "Question",
@@ -1526,7 +1603,7 @@ with st.form("chat_input_form", clear_on_submit=False):
             label_visibility="collapsed",
         )
     with send_col:
-        send_clicked = st.form_submit_button("➤", on_click=queue_chat_prompt)
+        send_clicked = st.form_submit_button("Lancer une analyse", on_click=queue_chat_prompt)
 
 if st.session_state.pending_prompt:
     actual_prompt = st.session_state.pending_prompt

@@ -50,7 +50,7 @@ def generate_simple_response(data: List[Dict[str, Any]], question: Optional[str]
             previous_response = conversation_history[-1].get("response", "")
             if previous_response:
                 base_response += f" (comparé au précédent: {previous_response})"
-        except:
+        except Exception:
             pass
     
     return base_response
@@ -232,7 +232,6 @@ def _pick_kpi_pair(row: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
             if "year" in key.lower() or "date" in key.lower():
                 year_str = str(row[key])
                 return label_key, f"{label_value:,.2f}€ in {year_str}"
-                break
 
     if isinstance(label_value, (int, float)) and label_value < 0:
         return label_key, f"de {abs(label_value):,.2f}€"

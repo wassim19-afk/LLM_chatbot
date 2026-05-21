@@ -16,6 +16,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 USERS_FILE = PROJECT_ROOT / "data" / "users.json"
+SESSIONS_TOKENS_FILE = PROJECT_ROOT / "data" / "auth_tokens.json"
 
 
 def _ensure_store() -> None:
@@ -94,6 +95,58 @@ def register_user(full_name: str, email: str, username: str, password: str) -> t
     users.append(user_record)
     _save_users(users)
     return True, "Compte créé avec succès.", _public_user(user_record)
+
+
+def _load_tokens() -> dict:
+    if not SESSIONS_TOKENS_FILE.exists():
+        return {}
+    try:
+        with open(SESSIONS_TOKENS_FILE, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _save_tokens(tokens: dict) -> None:
+    SESSIONS_TOKENS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(SESSIONS_TOKENS_FILE, "w", encoding="utf-8") as fh:
+        json.dump(tokens, fh, indent=2, ensure_ascii=False)
+
+
+def create_session_token(user: dict) -> str:
+    token = secrets.token_urlsafe(32)
+    tokens = _load_tokens()
+    tokens[token] = {
+        "user_id": user.get("id"),
+        "username": user.get("username"),
+        "full_name": user.get("full_name"),
+        "email": user.get("email"),
+        "created_at": datetime.utcnow().isoformat(),
+    }
+    _save_tokens(tokens)
+    return token
+
+
+def validate_session_token(token: str) -> dict | None:
+    if not token:
+        return None
+    tokens = _load_tokens()
+    entry = tokens.get(token)
+    if not entry:
+        return None
+    return {
+        "id": entry.get("user_id"),
+        "username": entry.get("username"),
+        "full_name": entry.get("full_name"),
+        "email": entry.get("email"),
+    }
+
+
+def revoke_session_token(token: str) -> None:
+    tokens = _load_tokens()
+    tokens.pop(token, None)
+    _save_tokens(tokens)
 
 
 def authenticate_user(identifier: str, password: str) -> tuple[bool, str, dict | None]:

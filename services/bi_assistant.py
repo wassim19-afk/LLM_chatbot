@@ -8,6 +8,9 @@ from typing import Dict, Optional, Tuple
 from enum import Enum
 from datetime import datetime
 from config.settings import settings
+from config.logger import get_logger
+
+logger = get_logger(__name__)
 
 class KPIType(Enum):
     """Supported KPI types"""
@@ -248,8 +251,7 @@ class BIAssistant:
                     return float(value)
         
         except Exception as e:
-            # Log error and use fallback
-            pass
+            logger.warning(f"DB query failed for BI KPI, using mock fallback: {e}")
         
         # Fallback to mock value if database query fails
         return self._get_mock_kpi_value_fallback(parsed_query)

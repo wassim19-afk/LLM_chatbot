@@ -269,7 +269,7 @@ REMEMBER:
                     logger.warning(f"Attempting to fix invalid identifiers: {invalid_identifiers}")
                     correction_prompt = SQL_GENERATION_CORRECTION_PROMPT.format(
                         question=question,
-                        schema_text=schema_text,
+                        schema=schema_text,
                         previous_sql=sql_query,
                         invalid_identifiers=", ".join(sorted(invalid_identifiers)),
                     )

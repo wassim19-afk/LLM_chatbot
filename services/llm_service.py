@@ -2,6 +2,7 @@
 # This module interfaces with the Ollama API to interact with the local Mistral model.
 # It sends prompts and receives responses for tasks like SQL generation and insights.
 
+import re
 from typing import List, Dict, Any
 from config.settings import settings
 from services.model_router import generate_response
@@ -119,7 +120,6 @@ def rewrite_question_for_clarity(question: str) -> str:
         r'\bqui\s+fait\s+beaucoup\b': 'with highest ',
     }
     
-    import re
     rewritten = q
     for pattern, replacement in replacements.items():
         rewritten = re.sub(pattern, replacement, rewritten, flags=re.IGNORECASE)

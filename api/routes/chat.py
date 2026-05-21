@@ -27,6 +27,7 @@ from data.db_connection import execute_query, get_database_schema
 from services.cache_service import get_cache_service
 from services.response_guard import has_template_for_question, sql_matches_intent
 from services.bi_assistant import get_bi_assistant
+from services.llm_service import inject_conversation_context, reformulate_question_with_context, rewrite_question_for_clarity
 from config.logger import get_logger
 from config.settings import settings
 
@@ -126,8 +127,6 @@ async def chat(request: ChatRequest):
         reformulated_question = request.question  # Default: use original question
         
         if is_followup and conversation_history:
-            from services.llm_service import inject_conversation_context, reformulate_question_with_context
-            
             # Try to reformulate ambiguous short questions using previous context
             last_question = conversation_history[-1].get("question", "")
             if last_question and len(request.question.split()) <= 3:  # Very short question
@@ -140,7 +139,6 @@ async def chat(request: ChatRequest):
             )
         
         # Step 0.7: Normalize question for clarity (improves SQL generation)
-        from services.llm_service import rewrite_question_for_clarity
         normalized_question = rewrite_question_for_clarity(reformulated_question)
         if normalized_question != reformulated_question:
             logger.warning(f"Normalized question: '{reformulated_question}' → '{normalized_question}'")

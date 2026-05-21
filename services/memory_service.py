@@ -116,8 +116,9 @@ class MemoryService:
         if session_id not in self.sessions:
             self.sessions[session_id] = []
 
-        result_summary = self._summarize_results(results)
-        row_count = len(results)
+        results_list = results if isinstance(results, list) else []
+        result_summary = self._summarize_results(results_list)
+        row_count = len(results_list)
 
         interaction = Interaction(
             timestamp=datetime.now().isoformat(),

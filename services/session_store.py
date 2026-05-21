@@ -9,7 +9,7 @@ from config.logger import get_logger
 
 logger = get_logger(__name__)
 
-SESSIONS_DIR = Path("data/sessions")
+SESSIONS_DIR = Path(__file__).resolve().parent.parent / "data" / "sessions"
 
 
 def ensure_sessions_dir():
