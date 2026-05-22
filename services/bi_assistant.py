@@ -181,8 +181,8 @@ class BIAssistant:
         return self.BASE_POWER_BI_URL
     
     def format_response(self, kpi_type: KPIType, kpi_value: float) -> str:
-        """Format KPI response"""
-        return f"{kpi_type.value}: {kpi_value:,.0f} BnFCFA"
+        """Format KPI response with real currency."""
+        return f"{kpi_type.value} : {kpi_value:,.0f} FCFA"
     
     def get_mock_kpi_value(self, parsed_query: Dict) -> float:
         """
@@ -246,23 +246,25 @@ class BIAssistant:
             
             results = execute_query(sql)
             if results and len(results) > 0:
-                value = results[0].get('total_value', 0)
-                if value > 0:
+                value = results[0].get('total_value')
+                if value is not None:
                     return float(value)
+            # DB returned no rows at all
+            raise ValueError("Aucune donnée trouvée pour cette période/société.")
         
+        except ValueError:
+            raise  # propagate clean error messages
         except Exception as e:
-            logger.warning(f"DB query failed for BI KPI, using mock fallback: {e}")
-        
-        # Fallback to mock value if database query fails
-        return self._get_mock_kpi_value_fallback(parsed_query)
+            logger.warning(f"DB query failed for BI KPI: {e}")
+            raise ValueError(f"Impossible d'interroger la base de données : {e}")
     
     def _get_mock_kpi_value_fallback(self, parsed_query: Dict) -> float:
         """
-        Fallback mock KPI values when database is not available
+        No longer used — mock values removed to avoid returning fake data.
+        Raises ValueError to force honest error handling.
         """
-        import random
-        random.seed(hash(str(parsed_query)) % 2**32)  # Deterministic but varies per query
-        
+        raise ValueError("Données non disponibles. Vérifiez la connexion à la base de données.")
+
         base_values = {
             KPIType.REVENUE: 1_200_000,
             KPIType.PURCHASE: 800_000,
@@ -329,11 +331,11 @@ class BIAssistant:
         else:
             parsed['companies'] = [parsed['company']]
         
-        # Use provided value or generate mock
+        # Fetch real value from DB — raises ValueError if unavailable
         if kpi_value is None:
             kpi_value = self.get_mock_kpi_value(parsed)
         
-        # Format response
+        # Format response with correct currency
         response = self.format_response(parsed['kpi_type'], kpi_value)
         
         # Generate link
@@ -359,6 +361,8 @@ class BIAssistant:
             r'\bcomparaison|compare',  # comparisons
             r'\b(plus|moins|meilleur|pire)',  # rankings
             r'\b(total|somme|moyenne|min|max)',  # aggregations
+            r'\bvs\b|\bversus\b',  # year-vs-year comparisons → handled by SQL pipeline
+            r'20\d{2}\s*(vs|versus|et|and|,)\s*20\d{2}',  # "2023 vs 2024"
         ]
         
         for pattern in aggregation_patterns:

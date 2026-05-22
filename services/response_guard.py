@@ -26,8 +26,58 @@ class IntentRule:
 INTENT_RULES: List[IntentRule] = [
     IntentRule(
         name="overdue_customers",
-        keywords=["client", "customer", "retard", "impaye", "impay", "overdue", "late", "past due"],
-        required_sql_tokens=["D_CUSTOMERLEDGERENTRY", "DUE DATE", "OPEN", "DOCUMENT NO_"],
+        keywords=["client", "customer", "impay", "impaye", "past due"],
+        required_sql_tokens=["D_CUSTOMERLEDGERENTRY", "OPEN"],
+    ),
+    IntentRule(
+        name="stock",
+        keywords=["stock", "inventaire", "inventory", "rupture", "entrepot", "warehouse"],
+        required_sql_tokens=["FACT_STOCKMANAGEMENT", "SUM", "GROUP BY"],
+    ),
+    IntentRule(
+        name="purchases",
+        keywords=["achat", "achats", "purchase", "purchases"],
+        required_sql_tokens=["FACT_PURSHASE", "SUM", "GROUP BY"],
+    ),
+    IntentRule(
+        name="disbursements",
+        keywords=["decaissement", "décaissement", "paiement fournisseur"],
+        required_sql_tokens=["FACT_VENDORPAYEMENTDETAIL", "SUM", "GROUP BY"],
+    ),
+    IntentRule(
+        name="sales_detail",
+        keywords=["vente", "ventes"],
+        required_sql_tokens=["FACT_SALES", "SUM", "GROUP BY"],
+    ),
+    IntentRule(
+        name="top_products",
+        keywords=["produit", "product", "article", "plus vendu", "vendu"],
+        required_sql_tokens=["SUM", "GROUP BY", "ORDER BY", "D_ITEM"],
+    ),
+    IntentRule(
+        name="top_vendors",
+        keywords=["fournisseur", "vendor", "supplier"],
+        required_sql_tokens=["D_VENDORLEDGERENTRY", "SUM", "GROUP BY"],
+    ),
+    IntentRule(
+        name="vendor_overdue",
+        keywords=["fournisseur", "vendor", "supplier"],
+        required_sql_tokens=["D_VENDORLEDGERENTRY", "OPEN"],
+    ),
+    IntentRule(
+        name="top_salespeople",
+        keywords=["vendeur", "commercial", "salesperson", "salesrep", "representant"],
+        required_sql_tokens=["D_CUSTOMERLEDGERENTRY", "SALESPERSON CODE", "SUM"],
+    ),
+    IntentRule(
+        name="payments_received",
+        keywords=["paiement", "payment", "encaissement", "recouvrement", "recu"],
+        required_sql_tokens=["FACT_CUSTOMERPAYEMENTDETAIL", "SUM", "GROUP BY"],
+    ),
+    IntentRule(
+        name="customer_balance",
+        keywords=["balance", "solde", "encours"],
+        required_sql_tokens=["D_CUSTOMERLEDGERENTRY", "SUM", "GROUP BY"],
     ),
     IntentRule(
         name="top_customers",
@@ -36,7 +86,7 @@ INTENT_RULES: List[IntentRule] = [
     ),
     IntentRule(
         name="loyal_customers",
-        keywords=["loyal", "fidele", "fidele", "best", "high value", "major", "key"],
+        keywords=["loyal", "fidele", "fidèle", "meilleur", "best", "high value", "major", "key"],
         required_sql_tokens=["SUM", "GROUP BY", "ORDER BY", "D_CUSTOMER"],
     ),
     IntentRule(
@@ -98,6 +148,38 @@ def detect_intent(question: str) -> Optional[IntentRule]:
                 continue
         elif rule.name == "item_locations":
             if not any(token in normalized for token in ["item", "article", "location", "warehouse", "store"]):
+                continue
+        elif rule.name == "overdue_customers":
+            if not any(token in normalized for token in ["retard", "impaye", "impay", "overdue", "late", "past due"]):
+                continue
+            if any(token in normalized for token in ["fournisseur", "vendor", "supplier"]):
+                continue
+        elif rule.name == "top_vendors":
+            if any(token in normalized for token in ["retard", "impaye", "overdue", "late"]):
+                continue
+        elif rule.name == "vendor_overdue":
+            if not any(token in normalized for token in ["retard", "impaye", "overdue", "late"]):
+                continue
+        elif rule.name == "top_salespeople":
+            if not any(token in normalized for token in ["vendeur", "commercial", "salesperson", "salesrep", "representant"]):
+                continue
+        elif rule.name == "payments_received":
+            if not any(token in normalized for token in ["paiement", "payment", "encaissement", "recouvrement", "recu"]):
+                continue
+        elif rule.name == "customer_balance":
+            if not any(token in normalized for token in ["balance", "solde", "encours"]):
+                continue
+        elif rule.name == "stock":
+            if not any(token in normalized for token in ["stock", "inventaire", "inventory", "rupture", "entrepot", "warehouse"]):
+                continue
+        elif rule.name == "purchases":
+            if not any(token in normalized for token in ["achat", "achats", "purchase", "purchases"]):
+                continue
+        elif rule.name == "disbursements":
+            if not any(token in normalized for token in ["decaissement", "paiement fournisseur"]):
+                continue
+        elif rule.name == "sales_detail":
+            if not any(token in normalized for token in ["vente", "ventes"]):
                 continue
 
         return rule

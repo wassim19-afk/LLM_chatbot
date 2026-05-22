@@ -115,11 +115,14 @@ async def chat(request: ChatRequest):
 
         logger.warning(f"Cache MISS - Processing model={model_name}, question: {request.question[:50]}...")
 
-        # Step 0.5: Check for RAG-relevant questions
+        # Step 0.5: Retrieve RAG context for all questions to improve SQL generation
         rag_context = ""
-        if rag_service.is_definitional_question(request.question):
-            rag_context = rag_service.retrieve_context(request.question)
-            logger.info("RAG context retrieved for definitional question")
+        try:
+            rag_context = rag_service.retrieve_context(request.question, top_k=3)
+            if rag_context:
+                logger.info("RAG context retrieved for question")
+        except Exception as _rag_err:
+            logger.warning(f"RAG retrieval skipped: {_rag_err}")
 
         # Step 0.6: Retrieve conversation context
         is_followup = memory_service.detect_followup(request.question, session_id)
@@ -147,7 +150,10 @@ async def chat(request: ChatRequest):
         # Step 0.8: Check if this is a BI (Business Intelligence) question
         if bi_assistant.is_bi_question(request.question):
             logger.warning(f"Detected BI question: {request.question[:50]}...")
-            bi_response, bi_link = bi_assistant.process_bi_question(request.question)
+            try:
+                bi_response, bi_link = bi_assistant.process_bi_question(request.question)
+            except ValueError as bi_err:
+                raise HTTPException(status_code=422, detail=str(bi_err))
             
             # Create BI-specific response
             response = ChatResponse(

@@ -114,26 +114,146 @@ class FallbackSQLTemplates:
         """
         Template: overdue clients (e.g., "clients en retard").
 
-        SQL: open customer ledger entries with due date before today.
+        SQL: aggregate overdue amount per customer, sorted by most overdue amount.
         """
         sql = """
 SELECT TOP 50
     cle.[Customer No_],
     c.[Name] AS [Customer Name],
-    cle.[Document No_],
-    cle.[Due Date],
-    cle.[Posting Date],
-    cle.[Entry No_]
+    ROUND(SUM(cle.[Balance]), 0) AS [Montant Restant],
+    COUNT(cle.[Entry No_]) AS [Nb Ecritures],
+    MIN(cle.[Due Date]) AS [Echeance La Plus Ancienne]
 FROM [dbo].[D_CustomerLedgerEntry] cle
 LEFT JOIN [dbo].[D_customer] c
     ON c.[No_] = cle.[Customer No_]
 WHERE cle.[Open] = 1
   AND cle.[Due Date] < CAST(GETDATE() AS DATE)
-ORDER BY cle.[Due Date] ASC
+GROUP BY cle.[Customer No_], c.[Name]
+ORDER BY [Montant Restant] DESC
         """.strip()
 
         return sql
-    
+
+    def _template_top_products(self, question: str) -> str:
+        """
+        Template: Top N products by sales or profit.
+        Uses D_ValueEntries joined with D_item.
+        """
+        top_n = self._extract_top_n(question)
+        normalized = self._normalize_question(question)
+
+        is_profit = any(t in normalized for t in ["rentable", "profitable", "profit", "marge"])
+
+        if is_profit:
+            order_col = "[Total Profit]"
+            extra_col = "    ROUND(SUM(v.[Sales Amount (Actual)]) - SUM(v.[Cost Amount (Actual)]), 0) AS [Total Profit],"
+        else:
+            order_col = "[Total Ventes]"
+            extra_col = ""
+
+        sql = f"""
+SELECT TOP {top_n}
+    i.[No_],
+    i.[Description],
+    ROUND(SUM(v.[Sales Amount (Actual)]), 0) AS [Total Ventes],
+{extra_col}
+    ROUND(SUM(v.[Valued Quantity]), 0) AS [Quantite Vendue]
+FROM [dbo].[D_ValueEntries] v
+INNER JOIN [dbo].[D_item] i
+    ON i.[No_] = v.[Item No_]
+WHERE v.[Sales Amount (Actual)] > 0
+GROUP BY i.[No_], i.[Description]
+ORDER BY {order_col} DESC
+        """.strip()
+
+        return sql
+
+    def _template_top_vendors(self, question: str) -> str:
+        """Top N fournisseurs par montant d'achat."""
+        top_n = self._extract_top_n(question)
+        sql = f"""
+SELECT TOP {top_n}
+    v.[Vendor No_],
+    v.[Vendor Name],
+    ROUND(SUM(v.[Purchase (LCY)]), 0) AS [Total Achats],
+    COUNT(v.[Entry No_]) AS [Nb Factures]
+FROM [dbo].[D_VendorLedgerEntry] v
+WHERE v.[Document Type] IN (2, 4)
+GROUP BY v.[Vendor No_], v.[Vendor Name]
+ORDER BY [Total Achats] DESC
+        """.strip()
+        return sql
+
+    def _template_vendor_overdue(self, question: str) -> str:
+        """Fournisseurs avec paiements en retard."""
+        sql = """
+SELECT TOP 50
+    v.[Vendor No_],
+    v.[Vendor Name],
+    ROUND(SUM(v.[Purchase (LCY)]), 0) AS [Montant Du],
+    COUNT(v.[Entry No_]) AS [Nb Ecritures],
+    MIN(v.[Due Date]) AS [Echeance La Plus Ancienne]
+FROM [dbo].[D_VendorLedgerEntry] v
+WHERE v.[Open] = 1
+  AND v.[Due Date] < CAST(GETDATE() AS DATE)
+GROUP BY v.[Vendor No_], v.[Vendor Name]
+ORDER BY [Montant Du] DESC
+        """.strip()
+        return sql
+
+    def _template_top_salespeople(self, question: str) -> str:
+        """Top N vendeurs/commerciaux par CA depuis D_CustomerLedgerEntry."""
+        top_n = self._extract_top_n(question)
+        sql = f"""
+SELECT TOP {top_n}
+    e.[Salesperson Code] AS [Vendeur],
+    ROUND(SUM(e.[Sales (LCY)]), 0) AS [Total CA],
+    COUNT(e.[Entry No_]) AS [Nb Transactions],
+    COUNT(DISTINCT e.[Customer No_]) AS [Nb Clients]
+FROM [dbo].[D_CustomerLedgerEntry] e
+WHERE e.[Salesperson Code] IS NOT NULL
+  AND e.[Salesperson Code] <> ''
+GROUP BY e.[Salesperson Code]
+ORDER BY [Total CA] DESC
+        """.strip()
+        return sql
+
+    def _template_payments_received(self, question: str) -> str:
+        """Paiements / encaissements reçus (Credit Amount)."""
+        sql = """
+SELECT TOP 50
+    f.[Customer No_],
+    c.[Name] AS [Customer Name],
+    ROUND(SUM(f.[Credit Amount]), 0) AS [Total Encaisse],
+    COUNT(f.[Entry No_]) AS [Nb Paiements],
+    MAX(f.[Posting Date]) AS [Dernier Paiement]
+FROM [dbo].[Fact_CustomerPayementDetail] f
+LEFT JOIN [dbo].[D_customer] c ON c.[No_] = f.[Customer No_]
+WHERE f.[Document Type] = 2
+  AND f.[Credit Amount] > 0
+GROUP BY f.[Customer No_], c.[Name]
+ORDER BY [Total Encaisse] DESC
+        """.strip()
+        return sql
+
+    def _template_customer_balance(self, question: str) -> str:
+        """Solde / encours ouvert par client via Detailed Customer Ledger Entries."""
+        sql = """
+SELECT TOP 50
+    d.[Customer No_],
+    c.[Name] AS [Customer Name],
+    ROUND(SUM(d.[Amount]), 0) AS [Solde],
+    COUNT(d.[Entry No_]) AS [Nb Ecritures]
+FROM [dbo].[Detailed Customer Ledger Entries] d
+LEFT JOIN [dbo].[D_customer] c ON c.[No_] = d.[Customer No_]
+INNER JOIN [dbo].[D_CustomerLedgerEntry] cle
+    ON cle.[Entry No_] = d.[Cust_ Ledger Entry No_] AND cle.[Open] = 1
+GROUP BY d.[Customer No_], c.[Name]
+HAVING ROUND(SUM(d.[Amount]), 0) <> 0
+ORDER BY [Solde] DESC
+        """.strip()
+        return sql
+
     def _extract_top_n(self, question: str) -> int:
         """Extract TOP N value from question (default: 10)."""
         match = re.search(r'top\s*(\d+)', question, re.IGNORECASE)
@@ -152,7 +272,7 @@ ORDER BY cle.[Due Date] ASC
         """
         Template: Loyal/high-value customers (e.g., "top 5 fidèle clients").
         
-        SQL: Show top customers by total amount (loyalty metric)
+        SQL: Show top customers by total amount + transaction count (loyalty metrics)
         """
         top_n = self._extract_top_n(question)
         
@@ -160,7 +280,8 @@ ORDER BY cle.[Due Date] ASC
 SELECT TOP {top_n}
     c.[No_],
     c.[Name],
-    SUM(f.[Amount]) AS [Total Amount] 
+    ROUND(SUM(f.[Amount]), 0) AS [Total Amount],
+    COUNT(f.[Entry No_]) AS [Nb Transactions]
 FROM [dbo].[D_customer] c
 INNER JOIN [dbo].[Fact_CustomerPayementDetail] f
     ON c.[No_] = f.[Customer No_]
@@ -173,19 +294,29 @@ ORDER BY [Total Amount] DESC
     def _template_year_comparison(self, question: str) -> str:
         """
         Template: Compare revenue/CA by year (e.g., "CA 2023 VS 2024").
-        
-        SQL: GROUP BY year, compare consecutive years
+        Extracts the exact years mentioned and filters to only those.
         """
-        sql = """
+        years = re.findall(r'20\d{2}', question)
+        years = sorted(set(int(y) for y in years))
+
+        if len(years) >= 2:
+            year_list = ', '.join(str(y) for y in years)
+            where_clause = f"WHERE YEAR([Posting Date]) IN ({year_list})"
+        elif len(years) == 1:
+            where_clause = f"WHERE YEAR([Posting Date]) = {years[0]}"
+        else:
+            where_clause = "WHERE YEAR([Posting Date]) >= YEAR(GETDATE()) - 1"
+
+        sql = f"""
 SELECT
     YEAR([Posting Date]) AS [Year],
-    SUM([Amount]) AS [Revenue CA]
+    SUM([Amount]) AS [CA Total]
 FROM [dbo].[Fact_CustomerPayementDetail]
-WHERE YEAR([Posting Date]) >= 2022
+{where_clause}
 GROUP BY YEAR([Posting Date])
-ORDER BY [Year] DESC
+ORDER BY [Year] ASC
         """.strip()
-        
+
         return sql
     
     def _template_yearly_total(self, question: str) -> str:
@@ -203,7 +334,7 @@ ORDER BY [Year] DESC
             sql = f"""
 SELECT
     YEAR([Posting Date]) AS [Year],
-    SUM([Amount]) AS [Chiffre d'affaires CA]
+    SUM([Amount]) AS [CA Total]
 FROM [dbo].[Fact_CustomerPayementDetail]
 WHERE YEAR([Posting Date]) = {year}
 GROUP BY YEAR([Posting Date])
@@ -213,7 +344,7 @@ GROUP BY YEAR([Posting Date])
             sql = """
 SELECT
     YEAR([Posting Date]) AS [Year],
-    SUM([Amount]) AS [Chiffre d'affaires CA]
+    SUM([Amount]) AS [CA Total]
 FROM [dbo].[Fact_CustomerPayementDetail]
 GROUP BY YEAR([Posting Date])
 ORDER BY [Year] DESC
@@ -318,6 +449,71 @@ ORDER BY [Entry No_] DESC
 
         return sql
 
+    def _template_sales_detail(self, question: str) -> str:
+        """Top products/clients by sales amount from Fact_Sales."""
+        top_n = self._extract_top_n(question) or 10
+        return f"""
+SELECT TOP {top_n}
+    s.[Item No_],
+    i.[Description] AS [Produit],
+    SUM(s.[Sales Amount (Actual)]) AS [Montant Ventes],
+    SUM(ABS(s.[Valued Quantity])) AS [Quantite Vendue]
+FROM [dbo].[Fact_Sales] s
+LEFT JOIN [dbo].[D_item] i ON s.[Item No_] = i.[No_]
+WHERE s.[Sales Amount (Actual)] > 0
+GROUP BY s.[Item No_], i.[Description]
+ORDER BY [Montant Ventes] DESC
+        """.strip()
+
+    def _template_purchases(self, question: str) -> str:
+        """Top vendors/purchases from Fact_Purshase."""
+        top_n = self._extract_top_n(question) or 10
+        return f"""
+SELECT TOP {top_n}
+    p.[Source No_] AS [Vendor No_],
+    v.[Name] AS [Fournisseur],
+    SUM(p.[Purchase Amount (Actual)]) AS [Montant Achats],
+    YEAR(p.[Posting Date]) AS [Annee]
+FROM [dbo].[Fact_Purshase] p
+LEFT JOIN [dbo].[D_vendor] v ON p.[Source No_] = v.[No_]
+WHERE p.[Purchase Amount (Actual)] > 0
+GROUP BY p.[Source No_], v.[Name], YEAR(p.[Posting Date])
+ORDER BY [Montant Achats] DESC
+        """.strip()
+
+    def _template_disbursements(self, question: str) -> str:
+        """Disbursements / vendor payments from Fact_VendorPayementDetail."""
+        top_n = self._extract_top_n(question) or 10
+        return f"""
+SELECT TOP {top_n}
+    f.[Vendor No_],
+    v.[Name] AS [Fournisseur],
+    SUM(f.[Amount]) AS [Montant Decaissement],
+    COUNT(*) AS [Nb Paiements]
+FROM [dbo].[Fact_VendorPayementDetail] f
+LEFT JOIN [dbo].[D_vendor] v ON f.[Vendor No_] = v.[No_]
+WHERE f.[Amount] > 0
+GROUP BY f.[Vendor No_], v.[Name]
+ORDER BY [Montant Decaissement] DESC
+        """.strip()
+
+    def _template_stock(self, question: str) -> str:
+        """Stock / inventory levels from Fact_StockManagement."""
+        top_n = self._extract_top_n(question) or 20
+        return f"""
+SELECT TOP {top_n}
+    s.[Item No_],
+    i.[Description] AS [Produit],
+    s.[Location Code],
+    SUM(s.[Quantity]) AS [Stock Total],
+    SUM(s.[Remaining Quantity]) AS [Stock Restant]
+FROM [dbo].[Fact_StockManagement] s
+LEFT JOIN [dbo].[D_item] i ON s.[Item No_] = i.[No_]
+GROUP BY s.[Item No_], i.[Description], s.[Location Code]
+HAVING SUM(s.[Quantity]) <> 0
+ORDER BY [Stock Total] DESC
+        """.strip()
+
     def _template_item_locations(self, question: str) -> str:
         """
         Template: Item and location summary.
@@ -354,6 +550,27 @@ ORDER BY [Total Quantity Valued] DESC
         normalized = self._normalize_question(question)
 
         # Explicit deterministic dispatch for critical BI intents.
+
+        # STOCK — highest priority to avoid article/item confusion
+        if any(token in normalized for token in ["stock", "inventaire", "inventory", "rupture"]):
+            return self._template_stock(normalized)
+
+        # DECAISSEMENT — before CA/vendor patterns
+        if any(token in normalized for token in ["decaissement", "decaissements", "cash out", "sortie caisse"]):
+            return self._template_disbursements(normalized)
+
+        # SALES DETAIL by product — before top_customers/top_products patterns
+        if any(token in normalized for token in ["vente", "ventes"]) and any(
+            token in normalized for token in ["produit", "article", "item", "top", "detail", "liste"]
+        ):
+            return self._template_sales_detail(normalized)
+
+        # ACHATS — before fournisseur/vendor patterns
+        if any(token in normalized for token in ["achat", "achats"]) and not any(
+            token in normalized for token in ["retard", "impaye", "overdue"]
+        ):
+            return self._template_purchases(normalized)
+
         if any(token in normalized for token in ["retard", "overdue", "late", "impaye", "impay"]) and any(
             token in normalized for token in ["client", "customer"]
         ):
@@ -383,6 +600,10 @@ ORDER BY [Total Quantity Valued] DESC
         # Check for "CA par mois" specifically
         if "ca" in normalized and any(token in normalized for token in ["mois", "month", "par mois", "monthly"]):
             return self._template_monthly_amounts(normalized)
+
+        # YEAR COMPARISON - must come BEFORE general CA check
+        if any(token in normalized for token in ["vs", "versus", "compare"]):
+            return self._template_year_comparison(normalized)
 
         # "CA / Revenue" queries - MUST check before general patterns
         if any(token in normalized for token in ["ca", "revenue", "chiffre", "affaires"]):
@@ -420,9 +641,46 @@ ORDER BY [Total Quantity Valued] DESC
         ):
             return self._template_last_n_months(normalized)
 
+        # STOCK queries — before item/article checks
+        if any(token in normalized for token in ["stock", "inventaire", "inventory", "rupture"]):
+            return self._template_stock(normalized)
+
+        # DECAISSEMENT / vendor payments
+        if any(token in normalized for token in ["decaissement", "decaissements", "paiement fournisseur", "vendor payment", "cash out", "sortie caisse"]):
+            return self._template_disbursements(normalized)
+
+        # ACHAT / purchases (distinct from fournisseur queries)
+        if any(token in normalized for token in ["achat", "achats", "purchase", "purchases"]):
+            if not any(token in normalized for token in ["retard", "impaye", "overdue"]):
+                return self._template_purchases(normalized)
+
+        # VENTES détaillées par produit — before top_products
+        if any(token in normalized for token in ["vente", "ventes"]):
+            if any(token in normalized for token in ["produit", "article", "item", "top", "detail", "liste"]):
+                return self._template_sales_detail(normalized)
+
+        if any(token in normalized for token in ["produit", "product", "article", "item"]) and any(
+            token in normalized for token in ["top", "plus vendu", "vendu", "best", "populaire", "rentable", "profitable", "marge", "profit"]
+        ):
+            return self._template_top_products(normalized)
+
         if any(token in normalized for token in ["item", "article", "location", "warehouse", "store"]):
             return self._template_item_locations(normalized)
-        
+
+        if any(token in normalized for token in ["fournisseur", "vendor", "supplier"]):
+            if any(token in normalized for token in ["retard", "impaye", "overdue", "late"]):
+                return self._template_vendor_overdue(normalized)
+            return self._template_top_vendors(normalized)
+
+        if any(token in normalized for token in ["vendeur", "commercial", "salesperson", "salesrep", "representant"]):
+            return self._template_top_salespeople(normalized)
+
+        if any(token in normalized for token in ["paiement", "payment", "encaissement", "recouvrement", "recu", "credit"]):
+            return self._template_payments_received(normalized)
+
+        if any(token in normalized for token in ["balance", "solde", "encours"]):
+            return self._template_customer_balance(normalized)
+
         # Try each pattern in order
         for pattern_config in self.patterns:
             pattern = pattern_config['pattern']

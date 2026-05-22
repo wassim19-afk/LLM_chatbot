@@ -1,0 +1,23 @@
+
+CA (Chiffre d'Affaires) : Revenu total généré par les ventes. Calculé comme la somme de tous les montants de ventes (SUM of Amount). Utilisé pour mesurer la performance commerciale globale.
+
+Top Clients : Classement des clients selon leur montant total d'achats en ordre décroissant. Requête SQL : SELECT TOP N client, SUM(montant) GROUP BY client ORDER BY SUM(montant) DESC.
+
+Clients fidèles / Loyal customers : Clients avec le plus grand volume d'achats cumulés sur une période. Synonymes : meilleurs clients, clients les plus actifs, high-value customers.
+
+Montant par mois : Agrégation mensuelle du chiffre d'affaires. Utilisé pour l'analyse de tendances et la détection de saisonnalité.
+
+Clients en retard / Overdue : Clients avec des paiements dépassant la date d'échéance. Calculé via la table D_CUSTOMERLEDGERENTRY avec filtre sur DUE DATE et OPEN = true.
+
+Encaissement : Somme des montants reçus (cash in). Table : Fact_CustomerPayementDetail.
+
+Décaissement : Somme des montants payés (cash out). Table fournisseurs.
+
+Achat : Total des achats effectués auprès des fournisseurs.
+
+Variation CA : Comparaison du chiffre d'affaires année sur année. Formule : (CA N - CA N-1) / CA N-1 * 100. Positif = croissance, Négatif = déclin.
+
+Année courante : L'année en cours (YEAR = YEAR(GETDATE())).
+
+Année précédente : L'année précédant l'année courante (YEAR = YEAR(GETDATE()) - 1).
+            

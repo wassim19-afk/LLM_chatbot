@@ -30,6 +30,10 @@ st.set_page_config(
 def inject_custom_css():
     st.markdown("""
     <style>
+        /* Hide Streamlit auto page navigation (app / admin links) */
+        [data-testid="stSidebarNav"] { display: none !important; }
+        [data-testid="collapsedControl"] { display: none !important; }
+
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
         :root {
@@ -362,9 +366,7 @@ def inject_custom_css():
         [data-testid="stForm"],
         [data-testid="stForm"] > *,
         [data-testid="stForm"] > * > *,
-        [data-testid="stForm"] > * > * > *,
-        [data-testid="stForm"] > * > * > * > * ,
-        [data-testid="stForm"] > * > * > * > * > * {
+        [data-testid="stForm"] > * > * > * {
             border-radius: 0 !important;
             -webkit-border-radius: 0 !important;
         }
@@ -1070,31 +1072,32 @@ def create_assistant_bubble(content, timestamp):
     </div>
     """, unsafe_allow_html=True)
 
-def create_response_card(content, data=None):
+def create_response_card(content, data=None, dashboard_link=None):
     """Create response card wrapper"""
     
     # Check if this is a BI response
     if data and isinstance(data, dict) and data.get("type") == "bi_result":
-        kpi_result = data.get("kpi_result", "")
-        dashboard_link = data.get("dashboard_link", "")
+        kpi_result = data.get("kpi_result", "") or content
+        link = dashboard_link or data.get("dashboard_link", "")
         
-        # Display KPI result
         st.markdown(f"""
         <div class="response-card" style="margin: 1rem 0;">
             {kpi_result}
         </div>
         """, unsafe_allow_html=True)
         
-        # Display dashboard link as button
-        if dashboard_link:
-            st.link_button("📊 Ouvrir Power BI Dashboard", dashboard_link, use_container_width=False)
+        if link:
+            st.link_button("📊 Ouvrir le Dashboard Power BI filtré", link, use_container_width=False)
     else:
-        # Normal response
         st.markdown(f"""
         <div class="response-card" style="margin: 1rem 0;">
             {content}
         </div>
         """, unsafe_allow_html=True)
+        
+        # Show dashboard button for any response that has a link
+        if dashboard_link:
+            st.link_button("📊 Ouvrir le Dashboard Power BI filtré", dashboard_link, use_container_width=False)
 
 def create_kpi_card(label, value):
     """Create KPI display card"""
@@ -1366,6 +1369,13 @@ def render_auth_screen():
 
 
 if not st.session_state.authenticated:
+    st.markdown("""
+    <style>
+        [data-testid="stSidebar"]        { display: none !important; }
+        [data-testid="stSidebarNav"]     { display: none !important; }
+        [data-testid="collapsedControl"] { display: none !important; }
+    </style>
+    """, unsafe_allow_html=True)
     render_auth_screen()
     st.stop()
 
@@ -1580,7 +1590,7 @@ with chat_container:
         if message["role"] == "user":
             create_user_bubble(message["content"], message.get("timestamp", ""))
         else:
-            create_response_card(message["content"], message.get("data"))
+            create_response_card(message["content"], message.get("data"), message.get("dashboard_link"))
 
             st.markdown(f"<div class='timestamp'>🕐 {message.get('timestamp', '')}</div>", unsafe_allow_html=True)
 
@@ -1678,13 +1688,20 @@ if actual_prompt:
         answer = data.get("insight", "No response")
         timestamp = datetime.now().strftime("%H:%M:%S")
         
+        # Extract dashboard link from bi_result or deterministic_insight
+        response_data = data.get("data", [])
+        dashboard_link = None
+        if isinstance(response_data, dict) and response_data.get("type") == "bi_result":
+            dashboard_link = response_data.get("dashboard_link")
+        
         # Add to chat history
         st.session_state.messages.append({
             "role": "assistant",
             "content": answer,
             "sql": data.get("sql_query"),
             "timestamp": timestamp,
-            "data": data.get("data", [])
+            "data": response_data,
+            "dashboard_link": dashboard_link,
         })
         
         st.rerun()

@@ -74,6 +74,14 @@ def reformulate_question_with_context(
             if any(c.isalpha() for c in word_clean):
                 metric_words.append(word_clean)
     
+    # Do NOT reformulate if current question is clearly about a different topic
+    # (e.g., previous = CA query, current = customer/loyalty query)
+    customer_keywords = ["client", "customer", "fidele", "fidelite", "loyal", "fidèle", "meilleur"]
+    current_is_customer = any(kw in current_lower for kw in customer_keywords)
+    last_is_kpi = any(kw in last_lower for kw in ["ca", "revenue", "chiffre", "encaissement", "achat"])
+    if current_is_customer and last_is_kpi:
+        return current_question
+
     if metric_words:
         # Take up to 3 words representing the metric (e.g., "CA", "chiffre affaires")
         metric = " ".join(metric_words[:3])
@@ -113,8 +121,11 @@ def rewrite_question_for_clarity(question: str) -> str:
         r'\bca\b': 'revenue',
         r'\ben\s+retard\b': 'overdue',
         r'\bimpaye\b': 'unpaid',
-        r'\bfiděle\b': 'loyal',
-        r'\bmeilleur\b': 'top',
+        r'\bfid[èe]le[s]?\b': 'loyal',
+        r'\bfid[eé]le[s]?\b': 'loyal',
+        r'\bmeilleur[s]?\b': 'top',
+        r'\bplus\s+fid[èe]le[s]?\b': 'most loyal',
+        r'\bplus\s+fid[eé]le[s]?\b': 'most loyal',
         r'\bclient\s+qui\s+fait\s+': 'customer who has ',
         r'\bclient\s+qui\b': 'which customer ',
         r'\bqui\s+fait\s+beaucoup\b': 'with highest ',

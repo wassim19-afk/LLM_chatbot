@@ -1,0 +1,23 @@
+
+Règles métier importantes :
+
+1. Un client fidèle est défini par le volume total d'achats cumulés (SUM Amount) sur toute la période disponible, trié en ordre décroissant.
+
+2. Le CA (Chiffre d'Affaires) de l'année courante se calcule avec YEAR(Posting Date) = YEAR(GETDATE()).
+
+3. Pour comparer deux années : utiliser CASE WHEN YEAR(...) = 2023 THEN Amount END et CASE WHEN YEAR(...) = 2024 THEN Amount END dans le même SELECT.
+
+4. Les clients en retard : filtre WHERE Open = 1 AND Due Date < GETDATE() sur D_CUSTOMERLEDGERENTRY.
+
+5. Pour les questions sur "combien de clients" : utiliser COUNT(DISTINCT Customer No_).
+
+6. Le montant par mois : GROUP BY YEAR(Posting Date), MONTH(Posting Date) ORDER BY YEAR, MONTH.
+
+7. Questions sur "qui achète le plus" ou "meilleur client" → même requête que top clients.
+
+8. Questions "quel est le CA de janvier 2024" → filtre MONTH = 1 AND YEAR = 2024.
+
+9. Pour les sociétés spécifiques (PEM, SAPEC) : filtre sur Company Name ou Global Dimension.
+
+10. Les montants sont en FCFA (Franc CFA) ou en euros selon la configuration de la société.
+            

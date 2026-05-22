@@ -124,15 +124,18 @@ class RAGService:
             return ""
 
     def is_definitional_question(self, question: str) -> bool:
-        """Heuristic: detect if question asks for definitions/KPI explanations."""
+        """Heuristic: detect if question asks for definitions/KPI explanations (FR + EN)."""
         keywords = [
-            "what is",
-            "define",
-            "meaning of",
-            "kpi",
-            "metric",
-            "how to calculate",
-            "explain",
+            # English
+            "what is", "define", "meaning of", "kpi", "metric",
+            "how to calculate", "explain", "what does",
+            # French definitions
+            "qu'est-ce", "qu est ce", "définition", "definition",
+            "signifie", "signification", "comment calculer",
+            "c'est quoi", "c est quoi", "expliquer", "expliquez",
+            # French contextual natural language
+            "comment fonctionne", "que veut dire", "que signifie",
+            "donne moi une explication", "explique moi",
         ]
         lower_q = question.lower()
         return any(kw in lower_q for kw in keywords)
@@ -149,40 +152,72 @@ class RAGService:
 
     @staticmethod
     def _create_default_documents() -> None:
-        """Create sample KPI documentation."""
+        """Create rich French business documentation for RAG."""
         docs = {
-            "kpi_definitions.txt": """
-CA (Chiffre d'Affaires) - Total revenue in currency units.
-Calculated as: SUM of all sales transactions.
+            "kpi_definitions_fr.txt": """
+CA (Chiffre d'Affaires) : Revenu total généré par les ventes. Calculé comme la somme de tous les montants de ventes (SUM of Amount). Utilisé pour mesurer la performance commerciale globale.
 
-Top Clients - Customers ranked by total sales amount in descending order.
-Used for: Identifying key business drivers and concentration risk.
+Top Clients : Classement des clients selon leur montant total d'achats en ordre décroissant. Requête SQL : SELECT TOP N client, SUM(montant) GROUP BY client ORDER BY SUM(montant) DESC.
 
-Montant par mois - Monthly aggregation of revenue.
-Used for: Trend analysis and seasonal detection.
+Clients fidèles / Loyal customers : Clients avec le plus grand volume d'achats cumulés sur une période. Synonymes : meilleurs clients, clients les plus actifs, high-value customers.
 
-Clients en retard - Overdue customers with outstanding payments.
-Calculated as: WHERE payment_date > due_date AND status != 'paid'.
+Montant par mois : Agrégation mensuelle du chiffre d'affaires. Utilisé pour l'analyse de tendances et la détection de saisonnalité.
 
-CA Variation - Year-over-year revenue comparison.
-Formula: (Current Year CA - Prior Year CA) / Prior Year CA * 100.
-Positive: Growth. Negative: Decline.
+Clients en retard / Overdue : Clients avec des paiements dépassant la date d'échéance. Calculé via la table D_CUSTOMERLEDGERENTRY avec filtre sur DUE DATE et OPEN = true.
+
+Encaissement : Somme des montants reçus (cash in). Table : Fact_CustomerPayementDetail.
+
+Décaissement : Somme des montants payés (cash out). Table fournisseurs.
+
+Achat : Total des achats effectués auprès des fournisseurs.
+
+Variation CA : Comparaison du chiffre d'affaires année sur année. Formule : (CA N - CA N-1) / CA N-1 * 100. Positif = croissance, Négatif = déclin.
+
+Année courante : L'année en cours (YEAR = YEAR(GETDATE())).
+
+Année précédente : L'année précédant l'année courante (YEAR = YEAR(GETDATE()) - 1).
             """,
-            "business_rules.txt": """
-Customer Ledger Entry - Core transaction record for customer interactions.
-Fields: Entry No_, Posting Date, Document No_, Amount.
+            "schema_db.txt": """
+Tables principales de la base de données SSMS :
 
-Sales Amount Actual - Actual revenue recognized (vs budgeted).
-Classification: Revenue dimension.
+D_Customer : Table des clients. Colonnes : No_ (identifiant client), Name (nom client), Address, City, Phone No_, E-Mail.
 
-Detailed Customer Ledger Entries - Granular transaction records for audit and reconciliation.
-Related to: Customer_view and core ledger tables.
+Fact_CustomerPayementDetail : Faits de paiements clients. Colonnes : Customer No_, Amount (montant), Posting Date (date comptabilisation), Document No_, Entry Type.
 
-Vendor Ledger Entry - Supplier transaction record.
-Fields: Entry No_, Posting Date, Credit/Debit Amount.
+D_CUSTOMERLEDGERENTRY : Écritures comptables clients détaillées. Colonnes : Entry No_, Customer No_, Posting Date, Document No_, Amount, Remaining Amount, Due Date, Open (booléen solde ouvert).
 
-Global Dimension 1 & 2 - Organizational hierarchy dimensions.
-Used for: Multi-level P&L analysis.
+D_Vendor : Table des fournisseurs. Colonnes : No_, Name, Address.
+
+D_ValueEntries : Écritures de valeur pour articles. Colonnes : Item No_, Location Code, Valued Quantity, Cost Amount Actual, Posting Date.
+
+Vue CA : Jointure D_Customer + Fact_CustomerPayementDetail regroupée par client et période.
+
+Pour les requêtes de CA par année : utiliser YEAR(Posting Date) = <année> dans WHERE.
+Pour les requêtes de CA par mois : utiliser MONTH(Posting Date) = <mois> dans WHERE.
+Pour les top clients : utiliser SELECT TOP N ... ORDER BY SUM(Amount) DESC.
+            """,
+            "business_rules_fr.txt": """
+Règles métier importantes :
+
+1. Un client fidèle est défini par le volume total d'achats cumulés (SUM Amount) sur toute la période disponible, trié en ordre décroissant.
+
+2. Le CA (Chiffre d'Affaires) de l'année courante se calcule avec YEAR(Posting Date) = YEAR(GETDATE()).
+
+3. Pour comparer deux années : utiliser CASE WHEN YEAR(...) = 2023 THEN Amount END et CASE WHEN YEAR(...) = 2024 THEN Amount END dans le même SELECT.
+
+4. Les clients en retard : filtre WHERE Open = 1 AND Due Date < GETDATE() sur D_CUSTOMERLEDGERENTRY.
+
+5. Pour les questions sur "combien de clients" : utiliser COUNT(DISTINCT Customer No_).
+
+6. Le montant par mois : GROUP BY YEAR(Posting Date), MONTH(Posting Date) ORDER BY YEAR, MONTH.
+
+7. Questions sur "qui achète le plus" ou "meilleur client" → même requête que top clients.
+
+8. Questions "quel est le CA de janvier 2024" → filtre MONTH = 1 AND YEAR = 2024.
+
+9. Pour les sociétés spécifiques (PEM, SAPEC) : filtre sur Company Name ou Global Dimension.
+
+10. Les montants sont en FCFA (Franc CFA) ou en euros selon la configuration de la société.
             """,
         }
 

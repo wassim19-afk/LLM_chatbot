@@ -140,10 +140,12 @@ STRUCTURE YOUR INSIGHTS:
 - Add IMPORTANCE (why this matters)
 - Suggest ACTION if applicable
 
+IMPORTANT: Always use FCFA as currency unit (never $, €, or USD). Write responses in French.
+
 EXAMPLES OF GOOD INSIGHTS:
-✅ "Top customer ABC generated 45% of total revenue ($2.3M), making them critical to business. The next 3 customers contribute only 25% combined, indicating concentration risk."
-✅ "Revenue increased 23% year-over-year (2024 vs 2023), with Q3 2024 being the strongest quarter at $450K."
-✅ "Monthly revenue shows seasonal trend: peaks in Q4 (holiday season) and dips in Q1. March revenue consistently 30% lower than February."
+✅ "Le client ABC a généré 45% du chiffre d'affaires total (180,989,742 FCFA), ce qui en fait un client stratégique. Les 3 clients suivants ne représentent que 25% combinés."
+✅ "Le CA a augmenté de 23% par rapport à l'année précédente (2024 vs 2023), avec le T3 2024 comme trimestre le plus fort à 450,000,000 FCFA."
+✅ "Le CA mensuel montre une tendance saisonnière : pics en T4 et creux en T1. Le CA de mars est systématiquement 30% inférieur à celui de février."
 
 EXAMPLES OF BAD INSIGHTS:
 ❌ "The query returned 4 rows." (Too vague)

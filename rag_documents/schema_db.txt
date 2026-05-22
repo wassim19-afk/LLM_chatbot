@@ -1,0 +1,19 @@
+
+Tables principales de la base de données SSMS :
+
+D_Customer : Table des clients. Colonnes : No_ (identifiant client), Name (nom client), Address, City, Phone No_, E-Mail.
+
+Fact_CustomerPayementDetail : Faits de paiements clients. Colonnes : Customer No_, Amount (montant), Posting Date (date comptabilisation), Document No_, Entry Type.
+
+D_CUSTOMERLEDGERENTRY : Écritures comptables clients détaillées. Colonnes : Entry No_, Customer No_, Posting Date, Document No_, Amount, Remaining Amount, Due Date, Open (booléen solde ouvert).
+
+D_Vendor : Table des fournisseurs. Colonnes : No_, Name, Address.
+
+D_ValueEntries : Écritures de valeur pour articles. Colonnes : Item No_, Location Code, Valued Quantity, Cost Amount Actual, Posting Date.
+
+Vue CA : Jointure D_Customer + Fact_CustomerPayementDetail regroupée par client et période.
+
+Pour les requêtes de CA par année : utiliser YEAR(Posting Date) = <année> dans WHERE.
+Pour les requêtes de CA par mois : utiliser MONTH(Posting Date) = <mois> dans WHERE.
+Pour les top clients : utiliser SELECT TOP N ... ORDER BY SUM(Amount) DESC.
+            

@@ -30,6 +30,10 @@ def _cached_get_stats():
 
 ADMIN_CSS = """
 <style>
+/* Hide Streamlit auto page navigation (app / admin links) */
+[data-testid="stSidebarNav"] { display: none !important; }
+[data-testid="collapsedControl"] { display: none !important; }
+
 /* ── Sidebar ────────────────────────────────────────────── */
 [data-testid="stSidebar"] { background: #0f172a !important; }
 
