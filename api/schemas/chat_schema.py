@@ -13,6 +13,7 @@ class ChatRequest(BaseModel):
     question: str
     model: str = "mistral"
     session_id: Optional[str] = None
+    user_id: Optional[str] = None
 
 class ChatResponse(BaseModel):
     """
@@ -29,7 +30,7 @@ class ChatResponse(BaseModel):
 
 class SessionRequest(BaseModel):
     """Request to create a new session."""
-    pass
+    user_id: Optional[str] = None
 
 class SessionResponse(BaseModel):
     """Response with session ID."""
@@ -50,6 +51,7 @@ class SessionInfo(BaseModel):
     updated_at: Optional[str] = None
     last_timestamp: Optional[str] = None
     last_question: Optional[str] = None
+    user_id: Optional[str] = None
 
 
 class SessionsResponse(BaseModel):

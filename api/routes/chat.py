@@ -3,12 +3,13 @@
 # It handles the POST /chat endpoint, orchestrating the process from question to response with caching.
 
 import time
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
 from api.schemas.chat_schema import (
     ChatRequest,
     ChatResponse,
+    SessionRequest,
     SessionResponse,
     SessionRenameRequest,
     SessionInfo,
@@ -46,16 +47,17 @@ bi_assistant = get_bi_assistant()
 
 
 @router.post("/session", response_model=SessionResponse)
-async def create_session():
+async def create_session(request: Optional[SessionRequest] = None):
     """Create a new conversation session."""
-    session_id = memory_service.create_session()
+    user_id = (request.user_id or "") if request else ""
+    session_id = memory_service.create_session(user_id=user_id)
     return SessionResponse(session_id=session_id)
 
 
 @router.get("/sessions", response_model=SessionsResponse)
-async def list_sessions():
-    """Return all saved sessions with metadata."""
-    sessions = memory_service.list_sessions()
+async def list_sessions(user_id: str = ""):
+    """Return all saved sessions with metadata, optionally filtered by user_id."""
+    sessions = memory_service.list_sessions(user_id=user_id)
     return SessionsResponse(sessions=sessions, count=len(sessions))
 
 
@@ -91,7 +93,8 @@ async def chat(request: ChatRequest):
 
     try:
         model_name = settings.OLLAMA_MODEL
-        session_id = request.session_id or memory_service.create_session()
+        user_id = request.user_id or ""
+        session_id = request.session_id or memory_service.create_session(user_id=user_id)
         cache_key = f"simple-v1::{model_name}::{request.question.strip()}"
 
         # Retrieve conversation history early (needed for cache hit insights too)
@@ -256,7 +259,7 @@ async def chat(request: ChatRequest):
         cache_service.set(cache_key, response)
 
         # Step 5.5: Add to memory
-        memory_service.add_interaction(session_id, request.question, sql_query, data, insight)
+        memory_service.add_interaction(session_id, request.question, sql_query, data, insight, user_id=user_id)
 
         elapsed = time.time() - start_time
         logger.warning(f"Chat request completed in {elapsed:.2f}s")

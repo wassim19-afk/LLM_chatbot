@@ -36,6 +36,7 @@ class MemoryService:
     def __init__(self, max_interactions: int = 10) -> None:
         self.sessions: Dict[str, List[Interaction]] = {}
         self.session_names: Dict[str, str] = {}
+        self.session_users: Dict[str, str] = {}
         self.max_interactions = max_interactions
         self._load_all_sessions_from_disk()
 
@@ -62,19 +63,20 @@ class MemoryService:
                 ]
                 self.sessions[session_id] = interactions
                 self.session_names[session_id] = session_record.get("session_name", f"Session {session_id[:8]}")
+                self.session_users[session_id] = session_record.get("user_id", "")
             if session_records:
                 logger.info(f"Loaded {len(session_records)} sessions from disk")
         except Exception as e:
             logger.error(f"Failed to load sessions from disk: {e}")
 
-    def create_session(self) -> str:
+    def create_session(self, user_id: str = "") -> str:
         """Generate new session ID and initialize memory."""
         session_id = str(uuid.uuid4())
         self.sessions[session_id] = []
         self.session_names[session_id] = f"Session {session_id[:8]}"
-        # Save empty session to disk
-        save_session(session_id, [], session_name=self.session_names[session_id])
-        logger.info(f"Created session: {session_id}")
+        self.session_users[session_id] = user_id
+        save_session(session_id, [], session_name=self.session_names[session_id], user_id=user_id)
+        logger.info(f"Created session: {session_id} for user: {user_id or 'anonymous'}")
         return session_id
 
     def load_session_from_disk(self, session_id: str) -> bool:
@@ -101,6 +103,7 @@ class MemoryService:
         self.sessions[session_id] = interactions
         if session_record:
             self.session_names[session_id] = session_record.get("session_name", f"Session {session_id[:8]}")
+            self.session_users[session_id] = session_record.get("user_id", "")
         logger.info(f"Loaded session {session_id} from disk ({len(interactions)} interactions)")
         return True
 
@@ -111,6 +114,7 @@ class MemoryService:
         sql_generated: str,
         results: List[Dict[str, Any]],
         response: str = "",
+        user_id: str = "",
     ) -> None:
         """Add interaction to session memory and save to disk."""
         if session_id not in self.sessions:
@@ -134,9 +138,17 @@ class MemoryService:
         if len(self.sessions[session_id]) > self.max_interactions:
             self.sessions[session_id].pop(0)
 
-        # Save to disk
+        # Auto-name session from first question
+        is_first = len(self.sessions[session_id]) == 1
+        if is_first:
+            auto_name = question.strip()[:60]
+            self.session_names[session_id] = auto_name
+        if user_id:
+            self.session_users[session_id] = user_id
+
         interactions_dict = [asdict(i) for i in self.sessions[session_id]]
-        save_session(session_id, interactions_dict, session_name=self.get_session_name(session_id))
+        uid = user_id or self.session_users.get(session_id, "")
+        save_session(session_id, interactions_dict, session_name=self.get_session_name(session_id), user_id=uid)
 
         logger.info(f"Added interaction to session {session_id}")
 
@@ -154,13 +166,15 @@ class MemoryService:
 
         return f"Session {session_id[:8]}"
 
-    def list_sessions(self) -> List[Dict[str, Any]]:
-        """Return metadata for all saved sessions."""
+    def list_sessions(self, user_id: str = "") -> List[Dict[str, Any]]:
+        """Return metadata for all saved sessions, filtered by user_id if provided."""
         records = list_session_records()
         sessions = []
         for record in records:
             session_id = record.get("session_id")
             if not session_id:
+                continue
+            if user_id and record.get("user_id", "") != user_id:
                 continue
             sessions.append({
                 "session_id": session_id,
@@ -170,6 +184,7 @@ class MemoryService:
                 "updated_at": record.get("updated_at"),
                 "last_timestamp": record.get("updated_at") or record.get("created_at"),
                 "last_question": record.get("interactions", [{}])[-1].get("question") if record.get("interactions") else None,
+                "user_id": record.get("user_id", ""),
             })
         return sessions
 

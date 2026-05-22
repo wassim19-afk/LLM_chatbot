@@ -1181,14 +1181,24 @@ def _read_session_record(session_id):
         return {}
 
 
+def _current_user_id():
+    """Return the current authenticated user's unique identifier."""
+    user = st.session_state.get("auth_user") or {}
+    return user.get("username") or user.get("email") or user.get("id") or ""
+
+
 def fetch_sessions_catalog():
     try:
+        uid = _current_user_id()
         sessions = []
         if SESSIONS_DIR.exists():
             for session_file in SESSIONS_DIR.glob("*.json"):
                 record = _read_session_record(session_file.stem)
-                if record:
-                    sessions.append(record)
+                if not record:
+                    continue
+                if uid and record.get("user_id", "") and record.get("user_id", "") != uid:
+                    continue
+                sessions.append(record)
         sessions.sort(key=lambda item: item.get("updated_at") or item.get("created_at") or "", reverse=True)
         return sessions
     except Exception:
@@ -1234,7 +1244,7 @@ def rename_current_session(session_id, new_name):
 
 
 def _create_new_session_state():
-    resp = requests.post(SESSION_URL, timeout=5)
+    resp = requests.post(SESSION_URL, json={"user_id": _current_user_id()}, timeout=5)
     if not resp.ok:
         return False
 
@@ -1652,7 +1662,7 @@ else:
 if actual_prompt:
     if not st.session_state.session_id:
         try:
-            resp = requests.post(SESSION_URL, timeout=5)
+            resp = requests.post(SESSION_URL, json={"user_id": _current_user_id()}, timeout=5)
             if resp.ok:
                 st.session_state.session_id = resp.json()["session_id"]
         except Exception as e:
@@ -1675,7 +1685,8 @@ if actual_prompt:
         payload = {
             "question": actual_prompt,
             "session_id": st.session_state.session_id,
-            "model": "mistral"
+            "model": "mistral",
+            "user_id": _current_user_id(),
         }
         
         response = requests.post(API_URL, json=payload, timeout=60)
@@ -1684,6 +1695,13 @@ if actual_prompt:
         
         if data.get("session_id"):
             st.session_state.session_id = data["session_id"]
+
+        # Auto-name session from first question
+        is_first_message = len(st.session_state.messages) == 1
+        if is_first_message and st.session_state.session_id:
+            auto_name = actual_prompt.strip()[:60]
+            rename_current_session(st.session_state.session_id, auto_name)
+            st.session_state.session_name = auto_name
         
         answer = data.get("insight", "No response")
         timestamp = datetime.now().strftime("%H:%M:%S")

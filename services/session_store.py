@@ -49,6 +49,7 @@ def load_session_record(session_id: str) -> Dict[str, Any]:
         return {
             "session_id": session_id,
             "session_name": session_name,
+            "user_id": session_data.get("user_id", ""),
             "created_at": session_data.get("created_at"),
             "updated_at": session_data.get("updated_at", session_data.get("created_at")),
             "interactions": interactions,
@@ -59,7 +60,7 @@ def load_session_record(session_id: str) -> Dict[str, Any]:
         return {}
 
 
-def save_session(session_id: str, interactions: List[Dict[str, Any]], session_name: Optional[str] = None) -> None:
+def save_session(session_id: str, interactions: List[Dict[str, Any]], session_name: Optional[str] = None, user_id: Optional[str] = None) -> None:
     """Save session interactions to JSON file."""
     ensure_sessions_dir()
     
@@ -68,6 +69,7 @@ def save_session(session_id: str, interactions: List[Dict[str, Any]], session_na
     session_data = {
         "session_id": session_id,
         "session_name": session_name or existing_record.get("session_name") or _default_session_name(session_id, interactions),
+        "user_id": user_id or existing_record.get("user_id") or "",
         "created_at": existing_record.get("created_at") or datetime.now().isoformat(),
         "updated_at": datetime.now().isoformat(),
         "interactions": interactions,
