@@ -13,6 +13,7 @@ import services.auth_service as _auth_mod
 importlib.reload(_auth_mod)
 
 import streamlit as st
+import streamlit.components.v1 as _components
 from services.auth_service import (
     list_users, admin_create_user, update_user, update_password, delete_user, get_stats
 )
@@ -24,77 +25,188 @@ ALL_PRIVILEGES = [
 
 ADMIN_CSS = """
 <style>
-/* ── Admin shell ─────────────────────────────────────── */
+/* ── Sidebar ────────────────────────────────────────────── */
 [data-testid="stSidebar"] { background: #0f172a !important; }
 
-/* ── Override global pill/999px radius → sharp inputs ── */
-.stTextInput > div,
-.stTextInput > div > div,
-.stTextInput > div > div > input,
-.stSelectbox > div > div,
-.stMultiSelect > div > div,
-.stMultiSelect > div > div > div,
-.stTextArea > div,
-.stTextArea > div > textarea,
-[data-baseweb="input"],
-[data-baseweb="select"] > div,
-[data-baseweb="textarea"] {
-    border-radius: 6px !important;
+/* ── Field labels: darker, spaced ──────────────────────── */
+body .stTextInput label,
+body .stSelectbox label,
+body .stMultiSelect label,
+body .stTextArea label {
+    color: #4b5563 !important;
+    font-size: .82rem !important;
+    font-weight: 600 !important;
+    margin-bottom: 4px !important;
 }
-/* Tags inside multiselect */
-[data-baseweb="tag"] { border-radius: 4px !important; }
-/* Buttons in admin keep moderate rounding */
-.stButton > button { border-radius: 6px !important; }
-.stFormSubmitButton > button { border-radius: 6px !important; }
 
-.adm-stat-grid { display:flex; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap; }
+/* ── Inputs: 8px radius + fine border ──────────────────── */
+body [data-baseweb="input"],
+body [data-baseweb="input"] > div,
+body .stTextInput > div,
+body .stTextInput > div > div {
+    border-radius: 8px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+}
+body [data-baseweb="input"] input,
+body .stTextInput > div > div > input {
+    border-radius: 8px !important;
+    border: none !important;
+    background: transparent !important;
+    color: #1e293b !important;
+    font-size: .88rem !important;
+}
+body [data-baseweb="input"]:focus-within,
+body .stTextInput > div:focus-within {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,.12) !important;
+}
+
+/* ── Disabled input: clearly non-editable ──────────────── */
+body [data-baseweb="input"][aria-disabled="true"],
+body .stTextInput > div > div > input:disabled {
+    background: #f3f4f6 !important;
+    color: #9ca3af !important;
+    cursor: not-allowed !important;
+    border-color: #e5e7eb !important;
+}
+
+/* ── Select / Multiselect ───────────────────────────────── */
+body .stSelectbox [data-baseweb="select"] > div,
+body .stSelectbox [data-baseweb="select"] > div > div,
+body .stMultiSelect [data-baseweb="select"] > div {
+    border-radius: 8px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+}
+body .stSelectbox [data-baseweb="select"] > div:focus-within,
+body .stMultiSelect [data-baseweb="select"] > div:focus-within {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,.12) !important;
+}
+
+/* ── Tags: compact pastel ───────────────────────────────── */
+body [data-baseweb="tag"] {
+    border-radius: 4px !important;
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border: 1px solid #bfdbfe !important;
+    padding: .1rem .4rem !important;
+    font-size: .75rem !important;
+    font-weight: 600 !important;
+    gap: 4px !important;
+}
+body [data-baseweb="tag"] span[role="presentation"] { font-size: .7rem !important; }
+
+/* ── Buttons ─────────────────────────────────────────────── */
+/* Primary submit (Enregistrer) */
+body button[kind="primaryFormSubmit"] {
+    background: #2563eb !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: .88rem !important;
+    padding: .5rem 1.25rem !important;
+    box-shadow: 0 2px 8px rgba(37,99,235,.25) !important;
+}
+body button[kind="primaryFormSubmit"]:hover {
+    background: #1d4ed8 !important;
+}
+
+/* Secondary submit (Annuler) → ghost */
+body button[kind="secondaryFormSubmit"] {
+    background: #ffffff !important;
+    color: #6b7280 !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    font-size: .88rem !important;
+    box-shadow: none !important;
+}
+body button[kind="secondaryFormSubmit"]:hover {
+    background: #f9fafb !important;
+    border-color: #9ca3af !important;
+    color: #374151 !important;
+}
+
+/* Table action buttons */
+body .stButton > button {
+    border-radius: 6px !important;
+    font-size: .82rem !important;
+}
+
+/* ── Form white card rectangular ───────────────────────── */
+body [data-testid="stVerticalBlockBorderWrapper"],
+body [data-testid="stVerticalBlockBorderWrapper"] > div,
+body [data-testid="stForm"],
+body [data-testid="stForm"] > div,
+body [data-testid="stForm"] > div > div,
+body [data-testid="stForm"] > div > div > div {
+    border-radius: 0 !important;
+    background: #ffffff !important;
+}
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    border-radius: 0 !important;
+    border: 1px solid #e5e7eb !important;
+    background: #ffffff !important;
+    padding: 1.5rem !important;
+    box-shadow: 0 2px 8px rgba(15,23,42,.06) !important;
+}
+/* White background on form structural containers only */
+body [data-testid="stForm"] > div,
+body [data-testid="stForm"] > div > div,
+body [data-testid="stForm"] [data-testid="stVerticalBlock"],
+body [data-testid="stForm"] [data-testid="stHorizontalBlock"] {
+    background-color: #ffffff !important;
+}
+body [data-testid="stForm"] input:disabled {
+    background-color: #f3f4f6 !important;
+}
+/* Buttons must NOT inherit white bg — reset them */
+body [data-testid="stForm"] button {
+    background-color: unset !important;
+}
+body .stFormSubmitButton > button[kind="primaryFormSubmit"],
+body .stFormSubmitButton > button[data-testid*="Submit"][type="submit"] {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+}
+
+/* ── Stat cards ─────────────────────────────────────────── */
 .adm-stat-card {
-    flex:1; min-width:160px;
-    background:#ffffff; border-radius:12px;
+    background:#ffffff; border-radius:10px;
     padding:1.25rem 1.5rem;
-    box-shadow:0 2px 12px rgba(15,23,42,.08);
-    border-top:4px solid #2563eb;
+    box-shadow:0 2px 12px rgba(15,23,42,.07);
+    border-top:3px solid #2563eb;
 }
 .adm-stat-val { font-size:2rem; font-weight:800; color:#1e293b; line-height:1; }
-.adm-stat-lbl { font-size:0.78rem; color:#64748b; margin-top:.3rem; font-weight:500; text-transform:uppercase; letter-spacing:.06em; }
+.adm-stat-lbl { font-size:0.75rem; color:#6b7280; margin-top:.3rem; font-weight:600;
+    text-transform:uppercase; letter-spacing:.06em; }
 
-/* table */
+/* ── Table ──────────────────────────────────────────────── */
 .adm-table { width:100%; border-collapse:collapse; background:#fff;
-    border-radius:12px; overflow:hidden;
-    box-shadow:0 2px 12px rgba(15,23,42,.08); }
-.adm-table th { background:#f8fafc; color:#475569; font-size:.75rem;
+    border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(15,23,42,.07); }
+.adm-table th { background:#f8fafc; color:#6b7280; font-size:.73rem;
     font-weight:700; text-transform:uppercase; letter-spacing:.07em;
-    padding:.75rem 1rem; text-align:left; border-bottom:1px solid #e2e8f0; }
-.adm-table td { padding:.75rem 1rem; border-bottom:1px solid #f1f5f9;
-    color:#1e293b; font-size:.88rem; vertical-align:middle; }
+    padding:.7rem 1rem; text-align:left; border-bottom:1px solid #e5e7eb; }
+.adm-table td { padding:.7rem 1rem; border-bottom:1px solid #f1f5f9;
+    color:#1e293b; font-size:.87rem; vertical-align:middle; }
 .adm-table tr:last-child td { border-bottom:none; }
 .adm-table tr:hover td { background:#f8fafc; }
 
-/* badges */
-.badge { display:inline-block; padding:.2rem .6rem; border-radius:999px;
-    font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
-.badge-admin { background:#dbeafe; color:#1d4ed8; }
-.badge-user  { background:#dcfce7; color:#15803d; }
+/* ── Role badges ────────────────────────────────────────── */
+.badge { display:inline-block; padding:.18rem .55rem; border-radius:4px;
+    font-size:.69rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+.badge-admin { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+.badge-user  { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
 
-/* section header */
-.adm-section-hdr {
-    display:flex; justify-content:space-between; align-items:center;
-    margin:1.5rem 0 .75rem;
-}
-.adm-section-title { font-size:1.15rem; font-weight:700; color:#1e293b; }
-
-/* modal */
-.adm-modal-bg {
-    position:fixed; inset:0; background:rgba(15,23,42,.45);
-    display:flex; align-items:center; justify-content:center;
-    z-index:9999;
-}
-.adm-modal {
-    background:#fff; border-radius:16px; padding:2rem 2.25rem;
-    max-width:520px; width:100%;
-    box-shadow:0 24px 64px rgba(15,23,42,.2);
-}
-.adm-modal-title { font-size:1.25rem; font-weight:800; color:#1e293b; margin-bottom:1.25rem; }
+/* ── Section header ─────────────────────────────────────── */
+.adm-section-hdr { display:flex; justify-content:space-between; align-items:center;
+    margin:1.5rem 0 .75rem; }
+.adm-section-title { font-size:1.1rem; font-weight:700; color:#1e293b; }
 </style>
 """
 
@@ -238,12 +350,10 @@ def _new_user_modal(edit_id: str | None = None) -> None:
         col_l, col_r = st.columns(2)
         with col_l:
             full_name = st.text_input("Nom complet", value=edit_user.get("full_name", "") if edit_user else "")
-            email = st.text_input("Email", value=edit_user.get("email", "") if edit_user else "",
-                                  disabled=bool(edit_user))
+            email = st.text_input("Email", value=edit_user.get("email", "") if edit_user else "")
         with col_r:
             username = st.text_input("Nom d'utilisateur",
-                                     value=edit_user.get("username", "") if edit_user else "",
-                                     disabled=bool(edit_user))
+                                     value=edit_user.get("username", "") if edit_user else "")
             role = st.selectbox(
                 "Rôle",
                 ["user", "admin"],
@@ -258,13 +368,14 @@ def _new_user_modal(edit_id: str | None = None) -> None:
             default=_default_privs,
             help="Les utilisateurs avec rôle 'user' accèdent uniquement au chatbot.",
         )
-        c1, c2 = st.columns(2)
-        submitted = c1.form_submit_button("💾 Enregistrer", use_container_width=True, type="primary")
-        cancelled = c2.form_submit_button("❌ Annuler", use_container_width=True)
+        _, c2, c1 = st.columns([4, 1.2, 1.2])
+        cancelled = c2.form_submit_button("Annuler", use_container_width=True)
+        submitted = c1.form_submit_button("Enregistrer", use_container_width=True, type="primary")
 
     if submitted:
         if edit_user:
-            ok, msg = update_user(edit_id, role=role, privileges=selected_privs, full_name=full_name)
+            ok, msg = update_user(edit_id, role=role, privileges=selected_privs,
+                                  full_name=full_name, email=email, username=username)
         else:
             ok, msg, _ = admin_create_user(full_name, email, username, password, role, selected_privs)
         st.toast(msg, icon="✅" if ok else "❌")
@@ -285,7 +396,7 @@ def _new_user_modal(edit_id: str | None = None) -> None:
         with st.form("pwd_form"):
             new_pwd = st.text_input("Nouveau mot de passe", type="password", placeholder="Nouveau mot de passe")
             confirm_pwd = st.text_input("Confirmer", type="password", placeholder="Confirmer le mot de passe")
-            pwd_submitted = st.form_submit_button("🔒 Mettre à jour le mot de passe", type="primary", use_container_width=True)
+            pwd_submitted = st.form_submit_button("Mettre à jour", type="primary")
         if pwd_submitted:
             if new_pwd != confirm_pwd:
                 st.error("Les mots de passe ne correspondent pas.")
@@ -294,28 +405,38 @@ def _new_user_modal(edit_id: str | None = None) -> None:
                 st.toast(msg, icon="✅" if ok else "❌")
 
 
-def _privileges_page(users: list[dict]) -> None:
-    st.markdown("### 🔑 Gestion des privilèges")
-    for u in users:
-        with st.expander(f"{u['full_name']} — {u['email']}"):
-            current = u.get("privileges", [])
-            valid_current = [p for p in current if p in ALL_PRIVILEGES]
-            new_privs = st.multiselect(
-                "Privilèges", ALL_PRIVILEGES, default=valid_current, key=f"priv_{u['id']}"
-            )
-            if st.button("Mettre à jour", key=f"upd_{u['id']}", type="primary"):
-                ok, msg = update_user(u["id"], privileges=new_privs)
-                st.toast(msg, icon="✅" if ok else "❌")
-                st.rerun()
-
 
 def _settings_page(auth_user: dict) -> None:
     st.markdown("### ⚙️ Paramètres")
-    st.info(f"Connecté en tant que **{auth_user.get('full_name')}** (`{auth_user.get('role')}`)")
+    st.info(f"Connecté en tant que **{auth_user.get('full_name')}** (`{auth_user.get('username')}` · rôle : `{auth_user.get('role')}`)")
     st.markdown("---")
-    st.markdown("**Identifiants par défaut (première installation) :**")
-    st.code("login: admin\nmot de passe: admin123")
-    st.warning("⚠️ Changez ce mot de passe en production via la gestion des utilisateurs.")
+
+    st.markdown("#### 🔒 Changer mon mot de passe")
+    with st.form("admin_pwd_form"):
+        current_pwd  = st.text_input("Mot de passe actuel", type="password", placeholder="Mot de passe actuel")
+        new_pwd      = st.text_input("Nouveau mot de passe", type="password", placeholder="Nouveau mot de passe")
+        confirm_pwd  = st.text_input("Confirmer le nouveau mot de passe", type="password", placeholder="Confirmer")
+        _, col = st.columns([3, 1])
+        save = col.form_submit_button("Mettre à jour", use_container_width=True, type="primary")
+
+    if save:
+        if not current_pwd:
+            st.error("Veuillez saisir le mot de passe actuel.")
+        elif new_pwd != confirm_pwd:
+            st.error("Les nouveaux mots de passe ne correspondent pas.")
+        elif len(new_pwd) < 4:
+            st.error("Le mot de passe doit contenir au moins 4 caractères.")
+        else:
+            from services.auth_service import authenticate_user
+            ok_auth, _, _ = authenticate_user(auth_user.get("email") or auth_user.get("username"), current_pwd)
+            if not ok_auth:
+                st.error("Mot de passe actuel incorrect.")
+            else:
+                ok, msg = update_password(auth_user.get("id"), new_pwd)
+                if ok:
+                    st.success("Mot de passe mis à jour avec succès.")
+                else:
+                    st.error(msg)
 
 
 def render_admin(auth_user: dict) -> None:
@@ -342,7 +463,6 @@ def render_admin(auth_user: dict) -> None:
     nav_items = [
         ("dashboard", "📊 Dashboard"),
         ("users", "👥 Utilisateurs"),
-        ("privileges", "🔑 Privilèges"),
         ("settings", "⚙️ Paramètres"),
     ]
     for key, label in nav_items:
@@ -361,6 +481,28 @@ def render_admin(auth_user: dict) -> None:
         st.query_params.clear()
         st.rerun()
 
+    # JS: permanently patch stForm border-radius via parent frame
+    _components.html("""
+    <script>
+    function fixForms() {
+        try {
+            var doc = window.parent.document;
+            doc.querySelectorAll('[data-testid="stVerticalBlockBorderWrapper"]').forEach(function(el) {
+                el.style.setProperty('border-radius', '0', 'important');
+                el.style.setProperty('background', '#ffffff', 'important');
+                el.style.setProperty('border', '1px solid #e2e8f0', 'important');
+            });
+            doc.querySelectorAll('[data-testid="stForm"]').forEach(function(el) {
+                el.style.setProperty('border-radius', '0', 'important');
+                el.style.setProperty('background', '#ffffff', 'important');
+            });
+        } catch(e) {}
+        requestAnimationFrame(fixForms);
+    }
+    fixForms();
+    </script>
+    """, height=0)
+
     # ── Main content ──
     display_name = html_mod.escape(auth_user.get("full_name") or auth_user.get("username") or "Admin")
     st.markdown(
@@ -370,7 +512,6 @@ def render_admin(auth_user: dict) -> None:
                 <div style="font-size:1.5rem;font-weight:800;color:#1e293b;">
                     {"📊 Dashboard" if page=="dashboard"
                      else "👥 Utilisateurs" if page=="users"
-                     else "🔑 Privilèges" if page=="privileges"
                      else "⚙️ Paramètres"}
                 </div>
                 <div style="color:#64748b;font-size:.85rem;">Administration · AI BI Chatbot</div>
@@ -404,9 +545,6 @@ def render_admin(auth_user: dict) -> None:
             _new_user_modal(st.session_state.edit_user_id)
         else:
             _users_table(users)
-
-    elif page == "privileges":
-        _privileges_page(users)
 
     elif page == "settings":
         _settings_page(auth_user)

@@ -139,6 +139,8 @@ def update_user(
     role: str | None = None,
     privileges: list[str] | None = None,
     full_name: str | None = None,
+    email: str | None = None,
+    username: str | None = None,
 ) -> tuple[bool, str]:
     users = _load_users()
     for u in users:
@@ -149,6 +151,10 @@ def update_user(
                 u["privileges"] = privileges
             if full_name is not None:
                 u["full_name"] = full_name.strip()
+            if email is not None and email.strip():
+                u["email"] = email.strip()
+            if username is not None and username.strip():
+                u["username"] = username.strip()
             u["updated_at"] = datetime.utcnow().isoformat()
             _save_users(users)
             return True, "Utilisateur mis à jour."

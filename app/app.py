@@ -332,7 +332,8 @@ def inject_custom_css():
             align-self: center;
         }
 
-        .stTextInput > div > div > input {
+        /* Pill input only inside the sticky chat bar */
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stTextInput"]) .stTextInput > div > div > input {
             background: #ffffff !important;
             border: none !important;
             border-radius: 999px !important;
@@ -343,7 +344,7 @@ def inject_custom_css():
             box-shadow: none !important;
         }
 
-        .stTextInput > div > div > input:focus {
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stTextInput"]) .stTextInput > div > div > input:focus {
             border-color: transparent !important;
             box-shadow: none !important;
         }
@@ -356,12 +357,24 @@ def inject_custom_css():
             margin-bottom: 0;
         }
 
+        /* ── Strip all border-radius from stForm ── */
+        :root { --border-radius: 8px; }
+        [data-testid="stForm"],
+        [data-testid="stForm"] > *,
+        [data-testid="stForm"] > * > *,
+        [data-testid="stForm"] > * > * > *,
+        [data-testid="stForm"] > * > * > * > * ,
+        [data-testid="stForm"] > * > * > * > * > * {
+            border-radius: 0 !important;
+            -webkit-border-radius: 0 !important;
+        }
+
         [data-testid="stForm"] [data-testid="stFormSubmitButton"] > button {
             height: 42px !important;
             min-height: 42px !important;
             width: auto !important;
             max-width: none !important;
-            border-radius: 999px !important;
+            border-radius: 8px !important;
             background: var(--accent) !important;
             color: #ffffff !important;
             border: none !important;
