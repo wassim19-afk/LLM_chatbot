@@ -5,10 +5,51 @@
       "full_name": "wassim",
       "email": "wassim.garali@gmail.com",
       "username": "user12",
-      "password_salt": "3bf0b08a221592763ccc06832cd03a92",
-      "password_hash": "738bfdcc20afefc21bc9d301b352689d660eab2121c3557ae815177143a7708a",
+      "password_salt": "a2b115a99a710e583fd14168f9605ce6",
+      "password_hash": "deec584c6cc25239401cef07ecebebb8b8e997c7483aa0b1ad1c47a7f36f6e9a",
       "created_at": "2026-05-19T19:10:46.367934",
-      "updated_at": "2026-05-19T19:10:46.367934"
+      "updated_at": "2026-05-22T10:18:17.758755",
+      "role": "user",
+      "privileges": [
+        "Tableaux de bord",
+        "Requêtes SQL",
+        "Export données",
+        "Rapports BI",
+        "Gestion sessions",
+        "Accès complet"
+      ]
+    },
+    {
+      "id": "c114e078-a84e-40b8-a4fd-c50710b15877",
+      "full_name": "Administrateur",
+      "email": "admin@biapp.local",
+      "username": "admin",
+      "role": "admin",
+      "password_salt": "f093ea8068485ed8e7e860e500bc3d5c",
+      "password_hash": "d548dfc40b47226e47a81ee6d04733e84af0b813bfc4e09a64a281ce7124361a",
+      "privileges": [
+        "Accès complet"
+      ],
+      "created_at": "2026-05-22T08:55:22.248320",
+      "updated_at": "2026-05-22T10:10:23.663384"
+    },
+    {
+      "id": "7c6874ea-c7cb-4ebb-be4e-6351d86380b8",
+      "full_name": "ali tayeb",
+      "email": "alitayeb@gmail.com",
+      "username": "ali",
+      "role": "user",
+      "password_salt": "164a06c6cbdefa0d2f8745cb0d55c274",
+      "password_hash": "29ffd1bb0c7ce75a7fdab6ebdfebf0a2fa8adeb5e14c8d394f2e4fb7ae42970b",
+      "privileges": [
+        "Tableaux de bord",
+        "Requêtes SQL",
+        "Export données",
+        "Rapports BI",
+        "Gestion sessions"
+      ],
+      "created_at": "2026-05-22T10:06:39.410117",
+      "updated_at": "2026-05-22T10:11:13.275187"
     }
   ]
 }

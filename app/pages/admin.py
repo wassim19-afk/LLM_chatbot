@@ -7,11 +7,6 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-import importlib
-import importlib.util
-import services.auth_service as _auth_mod
-importlib.reload(_auth_mod)
-
 import streamlit as st
 import streamlit.components.v1 as _components
 from services.auth_service import (
@@ -22,6 +17,16 @@ ALL_PRIVILEGES = [
     "Tableaux de bord", "Requêtes SQL", "Export données",
     "Rapports BI", "Gestion sessions", "Accès complet",
 ]
+
+
+@st.cache_data(ttl=5)
+def _cached_list_users():
+    return list_users()
+
+
+@st.cache_data(ttl=5)
+def _cached_get_stats():
+    return get_stats()
 
 ADMIN_CSS = """
 <style>
@@ -334,6 +339,8 @@ def _users_table(users: list[dict]) -> None:
                 if st.button("🗑️", key=f"del_{uid}", help="Supprimer", use_container_width=True):
                     ok, msg = delete_user(uid)
                     st.toast(msg, icon="✅" if ok else "❌")
+                    _cached_list_users.clear()
+                    _cached_get_stats.clear()
                     st.rerun()
         st.markdown("<hr style='margin:.1rem 0;border-color:#f1f5f9;'>", unsafe_allow_html=True)
 
@@ -380,6 +387,8 @@ def _new_user_modal(edit_id: str | None = None) -> None:
             ok, msg, _ = admin_create_user(full_name, email, username, password, role, selected_privs)
         st.toast(msg, icon="✅" if ok else "❌")
         if ok:
+            _cached_list_users.clear()
+            _cached_get_stats.clear()
             st.session_state.show_new_user_modal = False
             st.session_state.edit_user_id = None
             st.rerun()
@@ -481,28 +490,6 @@ def render_admin(auth_user: dict) -> None:
         st.query_params.clear()
         st.rerun()
 
-    # JS: permanently patch stForm border-radius via parent frame
-    _components.html("""
-    <script>
-    function fixForms() {
-        try {
-            var doc = window.parent.document;
-            doc.querySelectorAll('[data-testid="stVerticalBlockBorderWrapper"]').forEach(function(el) {
-                el.style.setProperty('border-radius', '0', 'important');
-                el.style.setProperty('background', '#ffffff', 'important');
-                el.style.setProperty('border', '1px solid #e2e8f0', 'important');
-            });
-            doc.querySelectorAll('[data-testid="stForm"]').forEach(function(el) {
-                el.style.setProperty('border-radius', '0', 'important');
-                el.style.setProperty('background', '#ffffff', 'important');
-            });
-        } catch(e) {}
-        requestAnimationFrame(fixForms);
-    }
-    fixForms();
-    </script>
-    """, height=0)
-
     # ── Main content ──
     display_name = html_mod.escape(auth_user.get("full_name") or auth_user.get("username") or "Admin")
     st.markdown(
@@ -524,8 +511,8 @@ def render_admin(auth_user: dict) -> None:
         unsafe_allow_html=True,
     )
 
-    stats = get_stats()
-    users = list_users()
+    stats = _cached_get_stats()
+    users = _cached_list_users()
 
     if page == "dashboard":
         _stat_cards(stats)
