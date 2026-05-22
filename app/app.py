@@ -11,6 +11,11 @@ import requests
 from datetime import datetime
 from config.settings import settings
 from services.auth_service import authenticate_user, register_user, create_session_token, validate_session_token, revoke_session_token
+import importlib.util as _ilu, pathlib as _pl
+_admin_spec = _ilu.spec_from_file_location("admin", _pl.Path(__file__).parent / "pages" / "admin.py")
+_admin_mod = _ilu.module_from_spec(_admin_spec)
+_admin_spec.loader.exec_module(_admin_mod)
+render_admin = _admin_mod.render_admin
 from services.session_store import delete_session as delete_session_record
 import re
 
@@ -1351,6 +1356,13 @@ if not st.session_state.authenticated:
     render_auth_screen()
     st.stop()
 
+# ── RBAC Router ──────────────────────────────────────────────
+_role = (st.session_state.auth_user or {}).get("role", "user")
+if _role == "admin":
+    render_admin(st.session_state.auth_user)
+    st.stop()
+
+# ── User: Chatbot ─────────────────────────────────────────────
 # Sidebar - Modern Design
 with st.sidebar:
     st.markdown(
