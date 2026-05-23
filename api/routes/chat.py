@@ -221,20 +221,67 @@ async def chat(request: ChatRequest):
                     sql_query = generate_fallback_sql(request.question)
 
                 if not sql_query:
-                    raise ValueError(f"All SQL generation methods failed: {str(e)}")
+                    # No SQL possible - use RAG to provide a helpful response
+                    logger.warning("No SQL template matched, using RAG fallback response")
+                    rag_answer = rag_service.answer_question(request.question, conversation_history)
+                    response = ChatResponse(
+                        sql_query=None,
+                        data={"type": "rag_response", "answer": rag_answer},
+                        insight=rag_answer,
+                        deterministic_insight=None,
+                        rag_context=rag_answer if rag_answer else None,
+                        session_id=session_id,
+                    )
+                    cache_service.set(cache_key, response)
+                    memory_service.add_interaction(session_id, request.question, "", [{"response": rag_answer}], rag_answer, user_id=user_id)
+                    elapsed = time.time() - start_time
+                    analytics_service.record_query(
+                        question=request.question,
+                        response_time=elapsed,
+                        success=True,
+                        cache_hit=False,
+                        model="RAG_FALLBACK",
+                    )
+                    return response
 
                 logger.warning("Using fallback SQL generation")
 
-        # Step 1.1: Relevance guard for known intents where wrong SQL is costly
-        matches_intent, intent_error = sql_matches_intent(sql_query, request.question)
-        if not matches_intent:
-            logger.warning(intent_error)
-            if template_sql and template_sql != sql_query:
-                sql_query = template_sql
-                matches_intent, intent_error = sql_matches_intent(sql_query, request.question)
+        # Step 1.1: Relevance guard — skip if we already have a deterministic template SQL
+        if sql_query == template_sql and template_sql:
+            matches_intent = True
+            intent_error = ""
+        else:
+            matches_intent, intent_error = sql_matches_intent(sql_query, request.question)
+            if not matches_intent:
+                logger.warning(intent_error)
+                if template_sql:
+                    sql_query = template_sql
+                    matches_intent = True
+                    intent_error = ""
 
         if has_template_for_question(request.question) and not matches_intent:
-            raise ValueError(f"Unable to generate a relevant SQL query for this intent: {intent_error}")
+            # Guard rejected SQL but we detected an intent - use RAG for helpful response
+            logger.warning(f"Intent guard failed: {intent_error}, switching to RAG")
+            rag_answer = rag_service.answer_question(request.question, conversation_history)
+            response = ChatResponse(
+                sql_query=None,
+                data={"type": "rag_response", "answer": rag_answer},
+                insight=rag_answer,
+                deterministic_insight=None,
+                rag_context=rag_answer if rag_answer else None,
+                session_id=session_id,
+            )
+            cache_service.set(cache_key, response)
+            memory_service.add_interaction(session_id, request.question, "", [{"response": rag_answer}], rag_answer, user_id=user_id)
+            elapsed = time.time() - start_time
+            analytics_service.record_query(
+                question=request.question,
+                response_time=elapsed,
+                success=True,
+                cache_hit=False,
+                model="RAG_FALLBACK",
+            )
+            return response
 
         logger.warning(f"Generated SQL: {sql_query[:100]}...")
 

@@ -269,6 +269,8 @@ def inject_custom_css():
             border: 1px solid rgba(148, 163, 184, 0.2);
             color: var(--text);
             box-shadow: var(--shadow-soft);
+            white-space: pre-wrap;
+            line-height: 1.6;
         }
 
         .timestamp {
@@ -520,37 +522,158 @@ def inject_custom_css():
             border: 1px solid rgba(34,197,94,0.2);
         }
 
-        /* Sidebar buttons — global override inside sidebar */
+        /* ── Sidebar buttons — base ───────────────────────────────────── */
         [data-testid="stSidebar"] div[data-testid="stButton"] > button,
         [data-testid="stSidebar"] .stButton > button {
-            background: rgba(255,255,255,0.92) !important;
-            color: #1e293b !important;
-            border: 1px solid rgba(255,255,255,0.3) !important;
-            border-radius: 8px !important;
-            padding: 0.45rem 0.5rem !important;
-            font-weight: 600 !important;
-            font-size: 0.78rem !important;
+            background: rgba(255,255,255,0.07) !important;
+            color: #e2e8f0 !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            border-radius: 10px !important;
+            padding: 0.5rem 0.75rem !important;
+            font-weight: 500 !important;
+            font-size: 0.8rem !important;
             box-shadow: none !important;
-            transition: background 0.15s ease !important;
+            transition: all 0.18s ease !important;
             white-space: normal !important;
             word-break: break-word !important;
-            line-height: 1.3 !important;
-            min-height: 36px !important;
+            line-height: 1.35 !important;
+            min-height: 38px !important;
             height: auto !important;
+            text-align: left !important;
         }
-
         [data-testid="stSidebar"] div[data-testid="stButton"] > button:hover,
         [data-testid="stSidebar"] .stButton > button:hover {
-            background: #ffffff !important;
-            border-color: rgba(255,255,255,0.5) !important;
-            color: #1e293b !important;
+            background: rgba(255,255,255,0.13) !important;
+            border-color: rgba(255,255,255,0.22) !important;
+            color: #ffffff !important;
         }
-
         [data-testid="stSidebar"] div[data-testid="stButton"] > button p,
         [data-testid="stSidebar"] .stButton > button p,
         [data-testid="stSidebar"] div[data-testid="stButton"] > button span,
         [data-testid="stSidebar"] .stButton > button span {
-            color: #1e293b !important;
+            color: inherit !important;
+        }
+
+        /* ── Session rename input ───────────────────────────────────────── */
+        [data-testid="stSidebar"] .stTextInput > div > div > input {
+            background: rgba(255,255,255,0.06) !important;
+            border: 1px solid rgba(255,255,255,0.12) !important;
+            border-radius: 10px !important;
+            color: #f1f5f9 !important;
+            font-size: 0.82rem !important;
+            padding: 0.5rem 0.75rem !important;
+        }
+        [data-testid="stSidebar"] .stTextInput > div > div > input:focus {
+            border-color: var(--accent) !important;
+            box-shadow: 0 0 0 2px rgba(37,99,235,0.25) !important;
+            outline: none !important;
+        }
+        [data-testid="stSidebar"] .stTextInput label { display: none !important; }
+
+        /* ── Rename button — blue accent ────────────────────────────────── */
+        .st-key-rename_session_btn [data-testid="stBaseButton-secondary"] {
+            background: var(--accent) !important;
+            border: none !important;
+            color: #fff !important;
+            border-radius: 10px !important;
+            font-weight: 600 !important;
+        }
+        .st-key-rename_session_btn [data-testid="stBaseButton-secondary"]:hover {
+            background: var(--accent-hover) !important;
+        }
+
+        /* ── Delete active session — red ghost ──────────────────────────── */
+        .st-key-delete_active_session_btn [data-testid="stBaseButton-secondary"] {
+            background: rgba(239,68,68,0.08) !important;
+            border: 1px solid rgba(239,68,68,0.25) !important;
+            color: #fca5a5 !important;
+            border-radius: 10px !important;
+        }
+        .st-key-delete_active_session_btn [data-testid="stBaseButton-secondary"]:hover {
+            background: rgba(239,68,68,0.18) !important;
+        }
+
+        /* ── Session history cards ──────────────────────────────────────── */
+        .session-history-card {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            margin-bottom: 0.35rem;
+        }
+        /* Load session button — full card style */
+        [data-testid="stSidebar"] [class*="st-key-session_load_"] [data-testid="stBaseButton-secondary"] {
+            background: rgba(255,255,255,0.05) !important;
+            border: 1px solid rgba(255,255,255,0.09) !important;
+            border-radius: 10px !important;
+            color: #cbd5e1 !important;
+            font-size: 0.79rem !important;
+            font-weight: 500 !important;
+            text-align: left !important;
+            padding: 0.55rem 0.75rem !important;
+            transition: all 0.15s !important;
+        }
+        [data-testid="stSidebar"] [class*="st-key-session_load_"] [data-testid="stBaseButton-secondary"]:hover {
+            background: rgba(37,99,235,0.18) !important;
+            border-color: rgba(37,99,235,0.35) !important;
+            color: #93c5fd !important;
+        }
+        /* Delete session button — icon only */
+        [data-testid="stSidebar"] [class*="st-key-session_delete_"] [data-testid="stBaseButton-secondary"] {
+            background: transparent !important;
+            border: 1px solid rgba(239,68,68,0.15) !important;
+            border-radius: 10px !important;
+            color: #f87171 !important;
+            font-size: 0.9rem !important;
+            padding: 0.45rem 0.5rem !important;
+            min-width: 36px !important;
+            width: 36px !important;
+        }
+        [data-testid="stSidebar"] [class*="st-key-session_delete_"] [data-testid="stBaseButton-secondary"]:hover {
+            background: rgba(239,68,68,0.15) !important;
+            border-color: rgba(239,68,68,0.35) !important;
+        }
+
+        /* ── Clear / Refresh action buttons ────────────────────────────── */
+        .st-key-clear_chat [data-testid="stBaseButton-secondary"] {
+            background: rgba(239,68,68,0.08) !important;
+            border: 1px solid rgba(239,68,68,0.2) !important;
+            color: #fca5a5 !important;
+            border-radius: 10px !important;
+            font-size: 0.8rem !important;
+        }
+        .st-key-clear_chat [data-testid="stBaseButton-secondary"]:hover {
+            background: rgba(239,68,68,0.18) !important;
+        }
+        .st-key-refresh_sessions [data-testid="stBaseButton-secondary"] {
+            background: rgba(255,255,255,0.07) !important;
+            border: 1px solid rgba(255,255,255,0.12) !important;
+            color: #94a3b8 !important;
+            border-radius: 10px !important;
+            font-size: 0.8rem !important;
+        }
+        .st-key-refresh_sessions [data-testid="stBaseButton-secondary"]:hover {
+            background: rgba(255,255,255,0.13) !important;
+            color: #e2e8f0 !important;
+        }
+
+        /* ── Active session box ─────────────────────────────────────────── */
+        .active-session-box {
+            background: rgba(37,99,235,0.1);
+            border: 1px solid rgba(37,99,235,0.2);
+            border-radius: 12px;
+            padding: 0.65rem 0.85rem 0.5rem;
+            margin-bottom: 0.6rem;
+        }
+        .active-session-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #60a5fa !important;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.4rem;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
         }
 
         /* New Analysis CTA — accent blue */
@@ -1072,8 +1195,24 @@ def create_assistant_bubble(content, timestamp):
     </div>
     """, unsafe_allow_html=True)
 
+def _escape_html(text):
+    """Escape HTML special characters."""
+    return (text
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
 def create_response_card(content, data=None, dashboard_link=None):
     """Create response card wrapper"""
+    
+    # Convert newlines to <br> tags for proper HTML rendering
+    def nl2br(text):
+        if not text:
+            return ""
+        escaped = _escape_html(str(text))
+        return escaped.replace("\n", "<br>")
     
     # Check if this is a BI response
     if data and isinstance(data, dict) and data.get("type") == "bi_result":
@@ -1082,7 +1221,7 @@ def create_response_card(content, data=None, dashboard_link=None):
         
         st.markdown(f"""
         <div class="response-card" style="margin: 1rem 0;">
-            {kpi_result}
+            {nl2br(kpi_result)}
         </div>
         """, unsafe_allow_html=True)
         
@@ -1091,7 +1230,7 @@ def create_response_card(content, data=None, dashboard_link=None):
     else:
         st.markdown(f"""
         <div class="response-card" style="margin: 1rem 0;">
-            {content}
+            {nl2br(content)}
         </div>
         """, unsafe_allow_html=True)
         
@@ -1454,29 +1593,37 @@ with st.sidebar:
     )
 
     if st.session_state.session_id:
-        st.markdown('<span class="sidebar-section-title">Session Active</span>', unsafe_allow_html=True)
         current_name = st.session_state.session_name or _session_display_name(st.session_state.session_id)
+        short_id = st.session_state.session_id[:8]
+        display_name = html.escape(current_name[:40]) if current_name else f"Session {short_id}"
+        st.markdown(f"""
+        <div class="active-session-box">
+            <div class="active-session-label">&#9679; Session active</div>
+            <div style="font-size:0.9rem;color:#1e293b;font-weight:700;margin-bottom:0.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{html.escape(current_name)}">{display_name}</div>
+            <div style="font-size:0.75rem;color:#475569;font-family:monospace;font-weight:500;">ID: {short_id}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
         if st.session_state.rename_target_session_id != st.session_state.session_id:
             st.session_state.rename_target_session_id = st.session_state.session_id
             st.session_state.session_rename_text = current_name
 
         rename_value = st.text_input(
-            "Renommer la session",
+            "Renommer",
             key="session_rename_text",
-            placeholder="Nom de la session",
+            placeholder="✏️  Nouveau nom…",
             label_visibility="collapsed",
         )
-        rename_col, delete_col = st.columns(2)
+        rename_col, delete_col = st.columns([3, 2])
         with rename_col:
-            if st.button("Renommer", key="rename_session_btn", use_container_width=True):
+            if st.button("✓ Renommer", key="rename_session_btn", use_container_width=True):
                 if rename_value.strip():
                     if rename_current_session(st.session_state.session_id, rename_value.strip()):
                         st.rerun()
                 else:
-                    st.warning("Le nom de la session ne peut pas être vide.")
+                    st.warning("Nom vide.")
         with delete_col:
-            if st.button("🗑️ Supprimer", key="delete_active_session_btn", use_container_width=True, help="Supprimer cette session"):
+            if st.button("🗑 Suppr.", key="delete_active_session_btn", use_container_width=True, help="Supprimer cette session"):
                 if delete_current_session(st.session_state.session_id):
                     st.rerun()
 
@@ -1488,37 +1635,32 @@ with st.sidebar:
             if session_id == st.session_state.session_id:
                 continue
             session_name = _session_display_name(session_id, session_item.get("session_name"))
-            row_left, row_right = st.columns([9, 1])
+            nb = session_item.get('interaction_count', 0)
+            label = f"💬  {session_name}  ·  {nb} msg"
+            row_left, row_right = st.columns([10, 1])
             with row_left:
-                label = f"{session_name} ({session_item.get('interaction_count', 0)})"
                 if st.button(label, key=f"session_load_{session_id}", use_container_width=True):
                     if load_session_history(session_id):
                         st.rerun()
             with row_right:
-                if st.button("🗑", key=f"session_delete_{session_id}", help="Supprimer cette session", use_container_width=True):
+                if st.button("✕", key=f"session_delete_{session_id}", help="Supprimer", use_container_width=True):
                     if delete_current_session(session_id):
                         st.rerun()
     else:
         st.markdown(
-            """
-            <div class="sidebar-help">
-                Aucune session sauvegardée pour le moment.
-            </div>
-            """,
+            '<div class="sidebar-help">Aucune session sauvegardée.</div>',
             unsafe_allow_html=True,
         )
 
-    st.markdown('<span class="sidebar-section-title">Actions Clés</span>', unsafe_allow_html=True)
-    st.markdown('<div class="sidebar-pill-grid">', unsafe_allow_html=True)
+    st.markdown('<span class="sidebar-section-title">Actions</span>', unsafe_allow_html=True)
     col_clear, col_refresh = st.columns(2)
     with col_clear:
-        if st.button("🗑️ Effacer", use_container_width=True, key="clear_chat", help="Effacer l'historique"):
+        if st.button("🗑️ Effacer chat", use_container_width=True, key="clear_chat", help="Effacer l'historique"):
             st.session_state.messages = []
             st.rerun()
     with col_refresh:
-        if st.button("🔄 Rafraîchir", use_container_width=True, key="refresh_sessions", help="Mettre à jour les sessions"):
+        if st.button("↻ Actualiser", use_container_width=True, key="refresh_sessions", help="Mettre à jour les sessions"):
             st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('<span class="sidebar-section-title">Connexions</span>', unsafe_allow_html=True)
     st.markdown(
@@ -1696,12 +1838,23 @@ if actual_prompt:
         if data.get("session_id"):
             st.session_state.session_id = data["session_id"]
 
-        # Auto-name session from first question
-        is_first_message = len(st.session_state.messages) == 1
-        if is_first_message and st.session_state.session_id:
-            auto_name = actual_prompt.strip()[:60]
-            rename_current_session(st.session_state.session_id, auto_name)
-            st.session_state.session_name = auto_name
+        # Auto-name session from first question (only when no custom name yet)
+        is_first_message = len([m for m in st.session_state.messages if m["role"] == "user"]) == 1
+        current_display = st.session_state.get("session_name", "")
+        has_default_name = not current_display or current_display.startswith("Session ") or current_display.startswith("Nouvelle session")
+        if is_first_message and st.session_state.session_id and has_default_name:
+            auto_name = actual_prompt.strip()[:50] + ("..." if len(actual_prompt.strip()) > 50 else "")
+            if auto_name:
+                try:
+                    # Direct API rename for immediate effect
+                    requests.post(
+                        f"{API_URL.replace('/api/chat', '')}/api/sessions/{st.session_state.session_id}/rename",
+                        json={"new_name": auto_name, "user_id": _current_user_id()},
+                        timeout=5
+                    )
+                    st.session_state.session_name = auto_name
+                except Exception:
+                    pass
         
         answer = data.get("insight", "No response")
         timestamp = datetime.now().strftime("%H:%M:%S")

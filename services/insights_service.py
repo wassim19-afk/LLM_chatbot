@@ -74,6 +74,10 @@ def generate_simple_response(data: List[Dict[str, Any]], question: Optional[str]
     if question and _is_disbursements_query(question):
         return _format_disbursements_response(data, question)
 
+    # Check if this is an EXPIRED PRODUCTS query
+    if question and _is_expired_products_query(question):
+        return _format_expired_products_response(data, question)
+
     # Check if this is a SALES DETAIL query
     if question and _is_sales_detail_query(question):
         return _format_sales_detail_response(data, question)
@@ -206,7 +210,7 @@ def _format_balance_response(data: List[Dict[str, Any]]) -> str:
 
 def _is_stock_query(question: str) -> bool:
     q = question.lower()
-    return bool(re.search(r'stock|inventaire|inventory|rupture|entrepot|warehouse|niveau.?stock', q))
+    return bool(re.search(r'stock|inventaire|inventory|rupture|repture|rupure|roupture|entrepot|warehouse|niveau.?stock', q))
 
 
 def _format_stock_response(data: List[Dict[str, Any]], question: str) -> str:
@@ -214,7 +218,9 @@ def _format_stock_response(data: List[Dict[str, Any]], question: str) -> str:
         return "Aucun article en stock trouvé."
     match = re.search(r'\b(\d+)\b', question)
     top_n = int(match.group(1)) if match else min(20, len(data))
-    lines = [f"Voici le stock des {min(top_n, len(data))} principaux articles :"]
+    low_stock = bool(re.search(r'rupture|repture|rupure|faible|bas|bientot|bientôt|critique|low', question.lower()))
+    header = f"Articles bientôt en rupture de stock ({min(top_n, len(data))} articles, stock le plus bas) :" if low_stock else f"Voici le stock des {min(top_n, len(data))} principaux articles :"
+    lines = [header]
     for idx, row in enumerate(data[:top_n], 1):
         name = row.get('Produit') or row.get('Description') or row.get('Item No_') or 'Inconnu'
         loc = row.get('Location Code') or ''
@@ -264,6 +270,34 @@ def _format_disbursements_response(data: List[Dict[str, Any]], question: str) ->
         amount_str = _format_amount(amount) if amount is not None else 'N/A'
         nb_str = f" · {int(nb)} paiements" if nb is not None else ""
         lines.append(f"{idx}. {name}: {amount_str}{nb_str}")
+    return "\n".join(lines)
+
+
+def _is_expired_products_query(question: str) -> bool:
+    q = question.lower()
+    return bool(re.search(r'perime|périmé|expire|expiré|obsolete', q) and re.search(r'produit|article|item', q))
+
+
+def _format_expired_products_response(data: List[Dict[str, Any]], question: str) -> str:
+    if not data:
+        return "Aucun produit trouvé avec ces critères."
+    match = re.search(r'\b(\d+)\b', question)
+    top_n = int(match.group(1)) if match else min(10, len(data))
+    q_lower = question.lower()
+    near_expiry = bool(re.search(r'bientot|bientôt|soon|prochainement|va expirer|va perimer', q_lower))
+    if near_expiry:
+        header = f"⚠️ Produits bientôt obsolètes (30-180 jours sans mouvement) — Top {min(top_n, len(data))} :"
+    else:
+        header = f"🗑️ Produits périmés/obsolètes (+365 jours sans mouvement) — Top {min(top_n, len(data))} :"
+    lines = [header]
+    for idx, row in enumerate(data[:top_n], 1):
+        name = row.get('Produit') or row.get('Description') or row.get('Item No_') or 'Inconnu'
+        stock = row.get('Stock Actuel')
+        last_move = row.get('Dernier Mouvement')
+        days = row.get('Jours Sans Mouvement')
+        stock_str = f"{float(stock):,.0f} unités" if stock is not None else 'N/A'
+        days_str = f" ({int(days)} jours sans mouvement)" if days is not None else ""
+        lines.append(f"{idx}. {name}: {stock_str}{days_str}")
     return "\n".join(lines)
 
 

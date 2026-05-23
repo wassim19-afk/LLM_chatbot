@@ -31,8 +31,13 @@ INTENT_RULES: List[IntentRule] = [
     ),
     IntentRule(
         name="stock",
-        keywords=["stock", "inventaire", "inventory", "rupture", "entrepot", "warehouse"],
+        keywords=["stock", "inventaire", "inventory", "rupture", "repture", "rupure", "entrepot", "warehouse"],
         required_sql_tokens=["FACT_STOCKMANAGEMENT", "SUM", "GROUP BY"],
+    ),
+    IntentRule(
+        name="expired_products",
+        keywords=["perime", "perimé", "périmé", "expire", "expiré", "obsolete", "obsole"],
+        required_sql_tokens=["D_item", "DATEDIFF", "Jours Sans Mouvement"],
     ),
     IntentRule(
         name="purchases",
@@ -170,7 +175,10 @@ def detect_intent(question: str) -> Optional[IntentRule]:
             if not any(token in normalized for token in ["balance", "solde", "encours"]):
                 continue
         elif rule.name == "stock":
-            if not any(token in normalized for token in ["stock", "inventaire", "inventory", "rupture", "entrepot", "warehouse"]):
+            if not any(token in normalized for token in ["stock", "inventaire", "inventory", "rupture", "repture", "rupure", "entrepot", "warehouse"]):
+                continue
+        elif rule.name == "expired_products":
+            if not any(token in normalized for token in ["perime", "perimé", "périmé", "expire", "expiré", "obsolete", "obsole"]):
                 continue
         elif rule.name == "purchases":
             if not any(token in normalized for token in ["achat", "achats", "purchase", "purchases"]):

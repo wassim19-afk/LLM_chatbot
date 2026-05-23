@@ -107,7 +107,23 @@ class FallbackSQLTemplates:
 
         # Collapse repeated spaces for more stable regex matching.
         without_accents = re.sub(r'\s+', ' ', without_accents).strip()
-        
+
+        # Correct common typos / misspellings
+        typo_map = {
+            r'\brepture\b': 'rupture',
+            r'\brupure\b': 'rupture',
+            r'\broupture\b': 'rupture',
+            r'\bfounisseur\b': 'fournisseur',
+            r'\bfournisseurs?\b': 'fournisseur',
+            r'\bdecaisement\b': 'decaissement',
+            r'\bdecaissment\b': 'decaissement',
+            r'\bachta\b': 'achat',
+            r'\bvents\b': 'ventes',
+            r'\bclients?\b': 'client',
+        }
+        for pattern, replacement in typo_map.items():
+            without_accents = re.sub(pattern, replacement, without_accents)
+
         return without_accents
 
     def _template_overdue_customers(self, question: str) -> str:
@@ -500,6 +516,9 @@ ORDER BY [Montant Decaissement] DESC
     def _template_stock(self, question: str) -> str:
         """Stock / inventory levels from Fact_StockManagement."""
         top_n = self._extract_top_n(question) or 20
+        low_stock = any(token in question for token in ["rupture", "faible", "bas", "low", "bientot", "bientôt", "critique"])
+        order = "ASC" if low_stock else "DESC"
+        having = "HAVING SUM(s.[Quantity]) > 0" if low_stock else "HAVING SUM(s.[Quantity]) <> 0"
         return f"""
 SELECT TOP {top_n}
     s.[Item No_],
@@ -510,8 +529,8 @@ SELECT TOP {top_n}
 FROM [dbo].[Fact_StockManagement] s
 LEFT JOIN [dbo].[D_item] i ON s.[Item No_] = i.[No_]
 GROUP BY s.[Item No_], i.[Description], s.[Location Code]
-HAVING SUM(s.[Quantity]) <> 0
-ORDER BY [Stock Total] DESC
+{having}
+ORDER BY [Stock Total] {order}
         """.strip()
 
     def _template_item_locations(self, question: str) -> str:
@@ -533,6 +552,35 @@ ORDER BY [Total Quantity Valued] DESC
         """.strip()
 
         return sql
+
+    def _template_expired_products(self, question: str) -> str:
+        """Products with no recent movement (potentially expired/obsolete)."""
+        top_n = self._extract_top_n(question) or 20
+        q_lower = question.lower()
+        # Detect if user asks for "bientôt" (soon) vs "déjà" (already)
+        near_expiry = any(w in q_lower for w in ["bientot", "bientôt", "soon", "prochainement", "va expirer", "va perimer"])
+        if near_expiry:
+            # Near expiry: low stock + some movement but slowing down (30-180 days)
+            days_min, days_max = 30, 180
+            having_add = f"AND DATEDIFF(DAY, MAX(CAST(s.[Posting Date] AS DATE)), GETDATE()) BETWEEN {days_min} AND {days_max}"
+        else:
+            # Already expired/obsolet: no movement for long time (>365 days) or never
+            days_min, days_max = 365, 9999
+            having_add = f"AND DATEDIFF(DAY, MAX(CAST(s.[Posting Date] AS DATE)), GETDATE()) >= {days_min}"
+        return f"""
+SELECT TOP {top_n}
+    i.[No_] AS [Item No_],
+    i.[Description] AS [Produit],
+    ISNULL(SUM(s.[Quantity]), 0) AS [Stock Actuel],
+    MAX(CAST(s.[Posting Date] AS DATE)) AS [Dernier Mouvement],
+    DATEDIFF(DAY, MAX(CAST(s.[Posting Date] AS DATE)), GETDATE()) AS [Jours Sans Mouvement]
+FROM [dbo].[D_item] i
+LEFT JOIN [dbo].[Fact_StockManagement] s ON s.[Item No_] = i.[No_]
+WHERE i.[No_] IS NOT NULL
+GROUP BY i.[No_], i.[Description]
+HAVING ISNULL(SUM(s.[Quantity]), 0) > 0 {having_add}
+ORDER BY [Jours Sans Mouvement] DESC
+        """.strip()
     
     def generate_fallback_sql(self, question: str) -> Optional[str]:
         """
@@ -554,6 +602,12 @@ ORDER BY [Total Quantity Valued] DESC
         # STOCK — highest priority to avoid article/item confusion
         if any(token in normalized for token in ["stock", "inventaire", "inventory", "rupture"]):
             return self._template_stock(normalized)
+
+        # EXPIRED/OBSOLETE PRODUCTS — products with no recent movement
+        if any(token in normalized for token in ["perime", "perimé", "périmé", "expire", "expiré", "obsolete", "obsole", "date peremption"]) and any(
+            token in normalized for token in ["produit", "article", "item"]
+        ):
+            return self._template_expired_products(normalized)
 
         # DECAISSEMENT — before CA/vendor patterns
         if any(token in normalized for token in ["decaissement", "decaissements", "cash out", "sortie caisse"]):
@@ -644,6 +698,12 @@ ORDER BY [Total Quantity Valued] DESC
         # STOCK queries — before item/article checks
         if any(token in normalized for token in ["stock", "inventaire", "inventory", "rupture"]):
             return self._template_stock(normalized)
+
+        # EXPIRED/OBSOLETE PRODUCTS
+        if any(token in normalized for token in ["perime", "perimé", "périmé", "expire", "expiré", "obsolete", "obsole"]) and any(
+            token in normalized for token in ["produit", "article", "item"]
+        ):
+            return self._template_expired_products(normalized)
 
         # DECAISSEMENT / vendor payments
         if any(token in normalized for token in ["decaissement", "decaissements", "paiement fournisseur", "vendor payment", "cash out", "sortie caisse"]):
